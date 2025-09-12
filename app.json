@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Budget Buddy",
+    "slug": "budget-buddy-mobile",
+    "description": "AI-powered personal finance manager with smart budgeting and insights",
+    "version": "1.0.0",
+    "sdkVersion": "51.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e40af"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.budgetbuddy.mobile",
+      "icon": "./assets/icon.png",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1e40af"
+      }
+    },
+    "android": {
+      "package": "com.budgetbuddy.mobile",
+      "versionCode": 1,
+      "icon": "./assets/icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e40af"
+      },
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1e40af"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "scheme": "budget-buddy",
+    "extra": {
+      "eas": {
+        "projectId": "e17260ad-76ff-462e-9ec5-b0bc63c25696"
+      }
+    }
+  }
+}
