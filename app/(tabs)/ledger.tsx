@@ -32,6 +32,7 @@ export default function Ledger() {
   // Local component state
   const [showAddModal, setShowAddModal] = useState(false);
   const [amount, setAmount] = useState('');
+  const [entryType, setEntryType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -99,6 +100,39 @@ export default function Ledger() {
               />
             </View>
 
+            {/* Entry Type Selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Type *</Text>
+              <View style={styles.typeSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.typeButton,
+                    entryType === 'deposit' && styles.typeButtonActive
+                  ]}
+                  onPress={() => setEntryType('deposit')}
+                  disabled={isSubmitting}
+                >
+                  <Text style={[
+                    styles.typeButtonText,
+                    entryType === 'deposit' && styles.typeButtonTextActive
+                  ]}>💰 Deposit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.typeButton,
+                    entryType === 'withdrawal' && styles.typeButtonActive
+                  ]}
+                  onPress={() => setEntryType('withdrawal')}
+                  disabled={isSubmitting}
+                >
+                  <Text style={[
+                    styles.typeButtonText,
+                    entryType === 'withdrawal' && styles.typeButtonTextActive
+                  ]}>💸 Withdrawal</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Description (Optional)</Text>
               <TextInput
@@ -123,11 +157,52 @@ export default function Ledger() {
               
               <TouchableOpacity 
                 style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
-                onPress={() => {
-                  Alert.alert('Success', `Would add $${amount || '0'} - ${description || 'No description'}`);
-                  setAmount('');
-                  setDescription('');
-                  setShowAddModal(false);
+                onPress={async () => {
+                  if (!amount) {
+                    Alert.alert('Error', 'Please enter an amount');
+                    return;
+                  }
+
+                  const amountNumber = parseFloat(amount);
+                  if (isNaN(amountNumber) || amountNumber <= 0) {
+                    Alert.alert('Error', 'Please enter a valid amount greater than 0');
+                    return;
+                  }
+
+                  setIsSubmitting(true);
+                  try {
+                    const result = await addSavingsEntry(
+                      amountNumber,
+                      entryType,
+                      undefined, // label - optional 
+                      description || undefined // purpose - optional
+                    );
+
+                    if (result.success) {
+                      // Reset form and close modal
+                      setAmount('');
+                      setEntryType('deposit');
+                      setDescription('');
+                      setShowAddModal(false);
+
+                      // Show achievement modal if new achievements unlocked
+                      if (result.newAchievements.length > 0) {
+                        Alert.alert(
+                          'Achievement Unlocked!',
+                          `Congratulations! You've unlocked ${result.newAchievements.length} new achievement${result.newAchievements.length > 1 ? 's' : ''}!`
+                        );
+                      }
+
+                      logger.info('✅ Savings entry saved successfully');
+                    } else {
+                      Alert.alert('Error', 'Failed to save savings entry');
+                    }
+                  } catch (error) {
+                    logger.error('❌ Error saving savings entry:', error);
+                    Alert.alert('Error', 'An unexpected error occurred');
+                  } finally {
+                    setIsSubmitting(false);
+                  }
                 }}
                 disabled={isSubmitting}
               >
@@ -291,6 +366,31 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     color: '#ffffff',
+    fontWeight: '600',
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  typeButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  typeButtonActive: {
+    borderColor: '#4caf50',
+    backgroundColor: '#e8f5e8',
+  },
+  typeButtonText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  typeButtonTextActive: {
+    color: '#4caf50',
     fontWeight: '600',
   },
 });

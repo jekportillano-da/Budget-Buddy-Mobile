@@ -131,11 +131,14 @@ class DatabaseService {
       );
 
       // Phase 2: Savings tracking tables
+      // Drop existing table if it has wrong constraints
+      await this.db.execAsync('DROP TABLE IF EXISTS savings_entries;');
+      
       await this.db.execAsync(
         `CREATE TABLE IF NOT EXISTS savings_entries (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           amount REAL NOT NULL,
-          entry_type TEXT NOT NULL CHECK (entry_type IN ('daily', 'weekly', 'monthly', 'other')),
+          entry_type TEXT NOT NULL CHECK (entry_type IN ('deposit', 'withdrawal', 'adjustment', 'transfer')),
           label TEXT,
           purpose TEXT,
           date_entered DATE NOT NULL,

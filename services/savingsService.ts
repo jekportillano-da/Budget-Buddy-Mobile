@@ -25,6 +25,9 @@ export class SavingsService {
     date?: string
   ): Promise<{ entryId: number; newAchievements: UserAchievement[] }> {
     try {
+      // Ensure database is initialized
+      await databaseService.init();
+      
       // Save the entry
       const entryId = await databaseService.saveSavingsEntry({
         amount: entryType === 'withdrawal' ? -Math.abs(amount) : Math.abs(amount),
@@ -51,6 +54,8 @@ export class SavingsService {
    */
   async getSavingsHistory(limit: number = 50): Promise<SavingsEntry[]> {
     try {
+      // Ensure database is initialized
+      await databaseService.init();
       return await databaseService.getSavingsEntries(limit);
     } catch (error) {
       console.error('❌ Error getting savings history:', error);
@@ -63,6 +68,8 @@ export class SavingsService {
    */
   async getCurrentBalance(): Promise<number> {
     try {
+      // Ensure database is initialized
+      await databaseService.init();
       return await databaseService.getTotalSavings();
     } catch (error) {
       console.error('❌ Error getting current balance:', error);
@@ -79,6 +86,9 @@ export class SavingsService {
    */
   async checkAndAwardAchievements(): Promise<UserAchievement[]> {
     try {
+      // Ensure database is initialized
+      await databaseService.init();
+      
       const currentSavings = await this.getCurrentBalance();
       const existingAchievements = await databaseService.getUserAchievements();
       const newAchievements: UserAchievement[] = [];
@@ -236,6 +246,8 @@ export class SavingsService {
    */
   async getUnlockedThemes(): Promise<UserPreference[]> {
     try {
+      // Ensure database is initialized
+      await databaseService.init();
       return await databaseService.getUserPreferences('theme');
     } catch (error) {
       console.error('❌ Error getting unlocked themes:', error);
@@ -248,6 +260,9 @@ export class SavingsService {
    */
   async activateTheme(themeKey: string): Promise<void> {
     try {
+      // Ensure database is initialized
+      await databaseService.init();
+      
       const unlockedThemes = await this.getUnlockedThemes();
       const themeExists = unlockedThemes.some(theme => theme.preference_key === themeKey);
 
@@ -274,6 +289,8 @@ export class SavingsService {
    */
   async getActiveTheme(): Promise<string> {
     try {
+      // Ensure database is initialized
+      await databaseService.init();
       return await databaseService.getActiveTheme();
     } catch (error) {
       console.error('❌ Error getting active theme:', error);
