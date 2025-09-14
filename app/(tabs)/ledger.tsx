@@ -72,9 +72,41 @@ export default function Ledger() {
         </TouchableOpacity>
       </View>
 
-      {/* Placeholder for more features */}
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>🚧 More features coming soon...</Text>
+      {/* Savings History */}
+      <View style={styles.historyCard}>
+        <Text style={styles.historyTitle}>Recent Transactions</Text>
+        {savingsHistory.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No transactions yet</Text>
+            <Text style={styles.emptyStateSubtext}>Add your first savings entry to get started!</Text>
+          </View>
+        ) : (
+          <View style={styles.transactionsList}>
+            {savingsHistory.map((entry) => (
+              <View key={entry.id} style={styles.transactionItem}>
+                <View style={styles.transactionLeft}>
+                  <Text style={styles.transactionType}>
+                    {entry.entry_type === 'deposit' ? '💰' : '💸'} {entry.entry_type.charAt(0).toUpperCase() + entry.entry_type.slice(1)}
+                  </Text>
+                  {entry.purpose && (
+                    <Text style={styles.transactionDescription}>{entry.purpose}</Text>
+                  )}
+                  <Text style={styles.transactionDate}>
+                    {new Date(entry.date_entered).toLocaleDateString()}
+                  </Text>
+                </View>
+                <View style={styles.transactionRight}>
+                  <Text style={[
+                    styles.transactionAmount,
+                    entry.entry_type === 'deposit' ? styles.depositAmount : styles.withdrawalAmount
+                  ]}>
+                    {entry.entry_type === 'deposit' ? '+' : '-'}{formatCurrency(Math.abs(entry.amount))}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Add Entry Modal */}
@@ -392,5 +424,78 @@ const styles = StyleSheet.create({
   typeButtonTextActive: {
     color: '#4caf50',
     fontWeight: '600',
+  },
+  historyCard: {
+    backgroundColor: '#ffffff',
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 4,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#999',
+  },
+  transactionsList: {
+    // No specific styles needed - just a container
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  transactionLeft: {
+    flex: 1,
+  },
+  transactionType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  transactionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  transactionRight: {
+    alignItems: 'flex-end',
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  depositAmount: {
+    color: '#4caf50',
+  },
+  withdrawalAmount: {
+    color: '#f44336',
   },
 });

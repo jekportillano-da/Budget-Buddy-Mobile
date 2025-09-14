@@ -81,6 +81,7 @@ class DatabaseService {
       // Updated for Expo SDK 51 - use openDatabaseSync for better compatibility
       this.db = await SQLite.openDatabaseAsync('budget_buddy_mobile.db');
       await this.createTables();
+      await this.runMigrations();
       logger.debug('Database initialized successfully');
     } catch (error) {
       logger.error('Database initialization error', { error });
@@ -131,9 +132,6 @@ class DatabaseService {
       );
 
       // Phase 2: Savings tracking tables
-      // Drop existing table if it has wrong constraints
-      await this.db.execAsync('DROP TABLE IF EXISTS savings_entries;');
-      
       await this.db.execAsync(
         `CREATE TABLE IF NOT EXISTS savings_entries (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -194,6 +192,75 @@ class DatabaseService {
     } catch (error) {
       console.error('❌ Error creating tables:', error);
       throw error;
+    }
+  }
+
+  // Run database migrations
+  private async runMigrations(): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      // Check if we need to migrate savings_entries table
+      const tableInfo = await this.db.getAllAsync("PRAGMA table_info(savings_entries)");
+      
+      // Check if the entry_type column has the old constraints
+      const entryTypeColumn = tableInfo.find((col: any) => col.name === 'entry_type');
+      
+      if (entryTypeColumn) {
+        // Try to insert a test record to see if the constraint allows 'deposit'
+        try {
+          await this.db.runAsync(
+            'INSERT INTO savings_entries (amount, entry_type, date_entered) VALUES (?, ?, ?)',
+            [0.01, 'deposit', new Date().toISOString()]
+          );
+          // If successful, delete the test record
+          await this.db.runAsync('DELETE FROM savings_entries WHERE amount = 0.01');
+          console.log('✅ Savings table schema is correct');
+        } catch (error) {
+          // If the constraint fails, we need to migrate
+          console.log('🔄 Migrating savings_entries table schema...');
+          
+          // Create backup of existing data
+          const existingData = await this.db.getAllAsync('SELECT * FROM savings_entries');
+          
+          // Drop and recreate table with correct schema
+          await this.db.execAsync('DROP TABLE savings_entries');
+          await this.db.execAsync(`
+            CREATE TABLE savings_entries (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              amount REAL NOT NULL,
+              entry_type TEXT NOT NULL CHECK (entry_type IN ('deposit', 'withdrawal', 'adjustment', 'transfer')),
+              label TEXT,
+              purpose TEXT,
+              date_entered DATE NOT NULL,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              synced BOOLEAN DEFAULT FALSE
+            )
+          `);
+          
+          // Restore data with updated entry types
+          for (const row of existingData) {
+            const rowData = row as any; // Type assertion for SQLite row data
+            let newEntryType = 'deposit';
+            if (rowData.entry_type === 'daily' || rowData.entry_type === 'weekly' || rowData.entry_type === 'monthly') {
+              newEntryType = rowData.amount >= 0 ? 'deposit' : 'withdrawal';
+            }
+            
+            await this.db.runAsync(
+              'INSERT INTO savings_entries (amount, entry_type, label, purpose, date_entered, created_at, updated_at, synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+              [rowData.amount, newEntryType, rowData.label, rowData.purpose, rowData.date_entered, rowData.created_at, rowData.updated_at, rowData.synced]
+            );
+          }
+          
+          console.log('✅ Savings table migration completed');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error running migrations:', error);
+      // Don't throw error - continue with normal operation
     }
   }
 
