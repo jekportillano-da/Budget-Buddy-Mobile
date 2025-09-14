@@ -1,3 +1,1 @@
-import { registerRootComponent } from 'expo';  
-import App from './app/_layout';  
-registerRootComponent(App); 
+import 'expo-router/entry'; 
