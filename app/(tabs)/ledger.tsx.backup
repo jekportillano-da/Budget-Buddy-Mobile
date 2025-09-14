@@ -1,0 +1,783 @@
+/**
+ * Budget Buddy Mobile - Ledger (Savings Tracker)
+ * @license MIT
+ */
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+       {/* Error Banner */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity onPress={clearError}>
+            <Text style={styles.errorClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Development Test Interface - Remove before production */}
+      <TestInterface visible={__DEV__} />
+
+      {/* Balance Card */},
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+import { useSavingsStore } from '../../stores/savingsStore';
+import { formatCurrency } from '../../utils/currencyUtils';
+import { logger } from '../../utils/logger';
+import TestInterface from '../../components/TestInterface';
+import type { SavingsEntry, UserAchievement } from '../../services/databaseService';
+
+export default function Ledger() {
+  const {
+    currentBalance,
+    savingsHistory,
+    currentTier,
+    achievements,
+    isLoading,
+    error,
+    addSavingsEntry,
+    loadSavingsData,
+    refreshBalance,
+    clearError,
+  } = useSavingsStore();
+
+  // Local component state
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [newEntry, setNewEntry] = useState({
+    amount: '',
+    entryType: 'deposit' as 'deposit' | 'withdrawal',
+    label: '',
+    purpose: '',
+  });
+  const [achievementModalVisible, setAchievementModalVisible] = useState(false);
+  const [newAchievements, setNewAchievements] = useState<UserAchievement[]>([]);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadSavingsData();
+  }, []);
+
+  // Clear any errors when component unmounts
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, []);
+
+  const handleAddEntry = () => {
+    setAddModalVisible(true);
+  };
+
+  const handleSaveEntry = async () => {
+    if (!newEntry.amount) {
+      Alert.alert('Error', 'Please enter an amount');
+      return;
+    }
+
+    const amount = parseFloat(newEntry.amount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount greater than 0');
+      return;
+    }
+
+    try {
+      const result = await addSavingsEntry(
+        amount,
+        newEntry.entryType,
+        newEntry.label || undefined,
+        newEntry.purpose || undefined
+      );
+
+      if (result.success) {
+        // Close modal and reset form
+        setAddModalVisible(false);
+        setNewEntry({
+          amount: '',
+          entryType: 'deposit',
+          label: '',
+          purpose: '',
+        });
+
+        // Show achievement modal if new achievements unlocked
+        if (result.newAchievements.length > 0) {
+          setNewAchievements(result.newAchievements);
+          setAchievementModalVisible(true);
+        }
+
+        logger.info('✅ Savings entry saved successfully');
+      } else {
+        Alert.alert('Error', 'Failed to save savings entry');
+      }
+    } catch (error) {
+      logger.error('❌ Error saving savings entry:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    }
+  };
+
+  const handleCancelEntry = () => {
+    setAddModalVisible(false);
+    setNewEntry({
+      amount: '',
+      entryType: 'deposit',
+      label: '',
+      purpose: '',
+    });
+  };
+
+  const onRefresh = async () => {
+    try {
+      await loadSavingsData();
+    } catch (error) {
+      logger.error('❌ Error refreshing ledger data:', error);
+    }
+  };
+
+  const getTierColor = (tierName: string) => {
+    const colors: { [key: string]: string } = {
+      'Starter': '#757575',
+      'Bronze Saver': '#CD7F32',
+      'Silver Saver': '#C0C0C0',
+      'Gold Saver': '#FFD700',
+      'Platinum Saver': '#E5E4E2',
+      'Diamond Saver': '#B9F2FF',
+      'Elite Saver': '#FF6B35',
+    };
+    return colors[tierName] || '#757575';
+  };
+
+  const getTierIcon = (tierName: string) => {
+    const icons: { [key: string]: string } = {
+      'Starter': '🌱',
+      'Bronze Saver': '🥉',
+      'Silver Saver': '🥈',
+      'Gold Saver': '🥇',
+      'Platinum Saver': '💎',
+      'Diamond Saver': '💠',
+      'Elite Saver': '👑',
+    };
+    return icons[tierName] || '🌱';
+  };
+
+  return (
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
+      }
+    >
+      {/* Error Banner */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity onPress={clearError}>
+            <Text style={styles.errorClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Balance Card */}
+      <View style={styles.balanceCard}>
+        <Text style={styles.balanceLabel}>Total Savings</Text>
+        <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddEntry}>
+          <Text style={styles.addButtonText}>+ Add Entry</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tier Progress Card */}
+      <View style={styles.tierCard}>
+        <View style={styles.tierHeader}>
+          <Text style={styles.tierIcon}>{getTierIcon(currentTier.name)}</Text>
+          <View style={styles.tierInfo}>
+            <Text style={[styles.tierName, { color: getTierColor(currentTier.name) }]}>
+              {currentTier.name}
+            </Text>
+            <Text style={styles.tierThreshold}>
+              {formatCurrency(currentTier.threshold)}+ achieved
+            </Text>
+          </View>
+        </View>
+
+        {currentTier.nextTier && (
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>
+                Progress to {currentTier.nextTier.name}
+              </Text>
+              <Text style={styles.progressPercent}>
+                {Math.round(currentTier.progress)}%
+              </Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: `${currentTier.progress}%`,
+                    backgroundColor: getTierColor(currentTier.nextTier.name)
+                  }
+                ]} 
+              />
+            </View>
+            <Text style={styles.progressTarget}>
+              Target: {formatCurrency(currentTier.nextTier.threshold)}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Recent Achievements */}
+      {achievements.length > 0 && (
+        <View style={styles.achievementsCard}>
+          <Text style={styles.sectionTitle}>🏆 Recent Achievements</Text>
+          {achievements.slice(0, 3).map((achievement, index) => (
+            <View key={achievement.id || index} style={styles.achievementItem}>
+              <Text style={styles.achievementIcon}>
+                {achievement.achievement_type === 'tier' ? '🎖️' : '⭐'}
+              </Text>
+              <View style={styles.achievementInfo}>
+                <Text style={styles.achievementName}>{achievement.achievement_name}</Text>
+                <Text style={styles.achievementDate}>
+                  Earned at {formatCurrency(achievement.total_savings_at_achievement)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Savings History */}
+      <View style={styles.historyCard}>
+        <Text style={styles.sectionTitle}>📝 Recent Transactions</Text>
+        {savingsHistory.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No transactions yet</Text>
+            <Text style={styles.emptyStateSubtext}>
+              Add your first savings entry to get started!
+            </Text>
+          </View>
+        ) : (
+          savingsHistory.slice(0, 10).map((entry, index) => (
+            <View key={entry.id || index} style={styles.historyItem}>
+              <View style={styles.historyLeft}>
+                <Text style={styles.historyIcon}>
+                  {entry.entry_type === 'deposit' ? '💰' : '💸'}
+                </Text>
+                <View style={styles.historyInfo}>
+                  <Text style={styles.historyLabel}>
+                    {entry.label || `${entry.entry_type === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
+                  </Text>
+                  {entry.purpose && (
+                    <Text style={styles.historyPurpose}>{entry.purpose}</Text>
+                  )}
+                  <Text style={styles.historyDate}>
+                    {new Date(entry.date_entered).toLocaleDateString()}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[
+                styles.historyAmount,
+                { color: entry.entry_type === 'deposit' ? '#4CAF50' : '#F44336' }
+              ]}>
+                {entry.entry_type === 'deposit' ? '+' : '-'}{formatCurrency(Math.abs(entry.amount))}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+
+      {/* Add Entry Modal */}
+      <Modal
+        visible={addModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCancelEntry}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Savings Entry</Text>
+
+            {/* Entry Type Selector */}
+            <View style={styles.typeSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  newEntry.entryType === 'deposit' && styles.typeButtonActive
+                ]}
+                onPress={() => setNewEntry({...newEntry, entryType: 'deposit'})}
+              >
+                <Text style={[
+                  styles.typeButtonText,
+                  newEntry.entryType === 'deposit' && styles.typeButtonTextActive
+                ]}>💰 Deposit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  newEntry.entryType === 'withdrawal' && styles.typeButtonActive
+                ]}
+                onPress={() => setNewEntry({...newEntry, entryType: 'withdrawal'})}
+              >
+                <Text style={[
+                  styles.typeButtonText,
+                  newEntry.entryType === 'withdrawal' && styles.typeButtonTextActive
+                ]}>💸 Withdrawal</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Amount Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Amount *</Text>
+              <TextInput
+                style={styles.input}
+                value={newEntry.amount}
+                onChangeText={(text) => setNewEntry({...newEntry, amount: text})}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                autoFocus
+              />
+            </View>
+
+            {/* Label Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Label (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={newEntry.label}
+                onChangeText={(text) => setNewEntry({...newEntry, label: text})}
+                placeholder="e.g., Monthly savings, Emergency fund"
+                maxLength={50}
+              />
+            </View>
+
+            {/* Purpose Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Purpose (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={newEntry.purpose}
+                onChangeText={(text) => setNewEntry({...newEntry, purpose: text})}
+                placeholder="e.g., Vacation, New car, Emergency"
+                maxLength={100}
+              />
+            </View>
+
+            {/* Modal Actions */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEntry}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.saveButton, isLoading && styles.saveButtonDisabled]} 
+                onPress={handleSaveEntry}
+                disabled={isLoading}
+              >
+                <Text style={styles.saveButtonText}>
+                  {isLoading ? 'Saving...' : 'Save Entry'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Achievement Modal */}
+      <Modal
+        visible={achievementModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setAchievementModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.achievementModal}>
+            <Text style={styles.achievementModalTitle}>🎉 Achievement Unlocked!</Text>
+            {newAchievements.map((achievement, index) => (
+              <View key={achievement.id || index} style={styles.newAchievementItem}>
+                <Text style={styles.newAchievementIcon}>
+                  {achievement.achievement_type === 'tier' ? '🎖️' : '⭐'}
+                </Text>
+                <Text style={styles.newAchievementName}>{achievement.achievement_name}</Text>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={styles.achievementModalButton}
+              onPress={() => setAchievementModalVisible(false)}
+            >
+              <Text style={styles.achievementModalButtonText}>Awesome!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  errorBanner: {
+    backgroundColor: '#ffebee',
+    padding: 12,
+    margin: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#d32f2f',
+    flex: 1,
+  },
+  errorClose: {
+    color: '#d32f2f',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  balanceCard: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  balanceLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  balanceAmount: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#2196F3',
+    marginBottom: 16,
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  tierCard: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tierHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  tierIcon: {
+    fontSize: 40,
+    marginRight: 16,
+  },
+  tierInfo: {
+    flex: 1,
+  },
+  tierName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  tierThreshold: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  progressSection: {
+    marginTop: 16,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  progressPercent: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2196F3',
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressTarget: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+  },
+  achievementsCard: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#333',
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  achievementIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  achievementInfo: {
+    flex: 1,
+  },
+  achievementName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  achievementDate: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  historyCard: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  historyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  historyIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  historyInfo: {
+    flex: 1,
+  },
+  historyLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  historyPurpose: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  historyDate: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  historyAmount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    margin: 20,
+    padding: 24,
+    borderRadius: 12,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#333',
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    gap: 12,
+  },
+  typeButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  typeButtonActive: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  typeButtonText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  typeButtonTextActive: {
+    color: '#2196F3',
+    fontWeight: '600',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  saveButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: '#2196F3',
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  achievementModal: {
+    backgroundColor: '#fff',
+    margin: 20,
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    maxWidth: 300,
+  },
+  achievementModalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+    textAlign: 'center',
+  },
+  newAchievementItem: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  newAchievementIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  newAchievementName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+  },
+  achievementModalButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  achievementModalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

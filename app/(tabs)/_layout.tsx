@@ -36,6 +36,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="ledger"
+        options={{
+          title: 'Ledger',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'wallet' : 'wallet-outline'} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="insights"
         options={{
           title: 'Insights',
@@ -72,6 +81,7 @@ function TabIcon({ name, color }: { name: string; color: string }) {
     if (name === 'bug' || name === 'bug-outline') return '🐛';
     if (name === 'home' || name === 'home-outline') return '🏠';
     if (name === 'receipt' || name === 'receipt-outline') return '🧾';
+    if (name === 'wallet' || name === 'wallet-outline') return '💰';
     if (name === 'analytics' || name === 'analytics-outline') return '📊';
     if (name === 'person' || name === 'person-outline') return '👤';
     return '⚙️';

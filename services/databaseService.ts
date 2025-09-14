@@ -27,6 +27,51 @@ export interface SyncItem {
   timestamp: number;
 }
 
+// Phase 2: Savings and gamification interfaces
+export interface SavingsEntry {
+  id?: number;
+  amount: number;
+  entry_type: 'deposit' | 'withdrawal' | 'adjustment' | 'transfer';
+  label?: string;
+  purpose?: string;
+  date_entered: string;
+  created_at?: string;
+  updated_at?: string;
+  synced?: boolean;
+}
+
+export interface UserAchievement {
+  id?: number;
+  achievement_type: 'tier' | 'badge' | 'milestone';
+  achievement_name: string;
+  achieved_at: string;
+  total_savings_at_achievement: number;
+  is_active?: boolean;
+  created_at?: string;
+}
+
+export interface UserPreference {
+  id?: number;
+  preference_type: 'theme' | 'avatar_border' | 'badge_display';
+  preference_key: string;
+  preference_value: string;
+  unlocked_at?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SavingsGoal {
+  id?: number;
+  goal_name: string;
+  target_amount: number;
+  current_amount?: number;
+  target_date?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 class DatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
 
@@ -84,8 +129,65 @@ class DatabaseService {
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );`
       );
+
+      // Phase 2: Savings tracking tables
+      await this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS savings_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          amount REAL NOT NULL,
+          entry_type TEXT NOT NULL CHECK (entry_type IN ('daily', 'weekly', 'monthly', 'other')),
+          label TEXT,
+          purpose TEXT,
+          date_entered DATE NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          synced BOOLEAN DEFAULT FALSE
+        );`
+      );
+
+      // Phase 2: User achievements and tiers
+      await this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS user_achievements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          achievement_type TEXT NOT NULL,
+          achievement_name TEXT NOT NULL,
+          achieved_at DATETIME NOT NULL,
+          total_savings_at_achievement REAL NOT NULL,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );`
+      );
+
+      // Phase 2: Theme and visual preferences
+      await this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS user_preferences (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          preference_type TEXT NOT NULL,
+          preference_key TEXT NOT NULL,
+          preference_value TEXT NOT NULL,
+          unlocked_at DATETIME,
+          is_active BOOLEAN DEFAULT FALSE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );`
+      );
+
+      // Phase 2: Savings goals (future-ready)
+      await this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS savings_goals (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          goal_name TEXT NOT NULL,
+          target_amount REAL NOT NULL,
+          current_amount REAL DEFAULT 0,
+          target_date DATE,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );`
+      );
       
       console.log('✅ Database tables created successfully');
+      console.log('✅ Phase 2 savings tables initialized');
     } catch (error) {
       console.error('❌ Error creating tables:', error);
       throw error;
@@ -284,6 +386,232 @@ class DatabaseService {
     } catch (error) {
       console.error('❌ Error clearing data:', error);
       throw error;
+    }
+  }
+
+  // ================================
+  // Phase 2: Savings & Gamification Methods
+  // ================================
+
+  // Savings entries methods
+  async saveSavingsEntry(entry: Omit<SavingsEntry, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const result = await this.db.runAsync(
+        `INSERT INTO savings_entries (amount, entry_type, label, purpose, date_entered, synced)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          entry.amount,
+          entry.entry_type,
+          entry.label || null,
+          entry.purpose || null,
+          entry.date_entered,
+          0
+        ]
+      );
+
+      console.log('✅ Savings entry saved successfully:', result.lastInsertRowId);
+      return result.lastInsertRowId;
+    } catch (error) {
+      console.error('❌ Error saving savings entry:', error);
+      throw error;
+    }
+  }
+
+  async getSavingsEntries(limit: number = 50): Promise<SavingsEntry[]> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const result = await this.db.getAllAsync(
+        'SELECT * FROM savings_entries ORDER BY created_at DESC LIMIT ?',
+        [limit]
+      );
+
+      const entries: SavingsEntry[] = result.map((row: any) => ({
+        id: row.id,
+        amount: row.amount,
+        entry_type: row.entry_type,
+        label: row.label,
+        purpose: row.purpose,
+        date_entered: row.date_entered,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        synced: Boolean(row.synced)
+      }));
+
+      console.log('✅ Retrieved savings entries:', entries.length);
+      return entries;
+    } catch (error) {
+      console.error('❌ Error getting savings entries:', error);
+      throw error;
+    }
+  }
+
+  async getTotalSavings(): Promise<number> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const result = await this.db.getFirstAsync(
+        'SELECT SUM(amount) as total FROM savings_entries'
+      );
+      
+      const total = result ? (result as any).total || 0 : 0;
+      console.log('✅ Total savings calculated:', total);
+      return total;
+    } catch (error) {
+      console.error('❌ Error calculating total savings:', error);
+      throw error;
+    }
+  }
+
+  // Achievement methods
+  async saveAchievement(achievement: Omit<UserAchievement, 'id' | 'created_at'>): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      await this.db.runAsync(
+        `INSERT INTO user_achievements (achievement_type, achievement_name, achieved_at, total_savings_at_achievement, is_active)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          achievement.achievement_type,
+          achievement.achievement_name,
+          achievement.achieved_at,
+          achievement.total_savings_at_achievement,
+          achievement.is_active !== false ? 1 : 0
+        ]
+      );
+
+      console.log('✅ Achievement saved successfully');
+    } catch (error) {
+      console.error('❌ Error saving achievement:', error);
+      throw error;
+    }
+  }
+
+  async getUserAchievements(): Promise<UserAchievement[]> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const result = await this.db.getAllAsync(
+        'SELECT * FROM user_achievements WHERE is_active = 1 ORDER BY achieved_at DESC'
+      );
+
+      const achievements: UserAchievement[] = result.map((row: any) => ({
+        id: row.id,
+        achievement_type: row.achievement_type,
+        achievement_name: row.achievement_name,
+        achieved_at: row.achieved_at,
+        total_savings_at_achievement: row.total_savings_at_achievement,
+        is_active: Boolean(row.is_active),
+        created_at: row.created_at
+      }));
+
+      console.log('✅ Retrieved user achievements:', achievements.length);
+      return achievements;
+    } catch (error) {
+      console.error('❌ Error getting achievements:', error);
+      throw error;
+    }
+  }
+
+  // Preference methods
+  async saveUserPreference(preference: Omit<UserPreference, 'id' | 'created_at' | 'updated_at'>): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      // First, deactivate any existing preferences of the same type
+      await this.db.runAsync(
+        `UPDATE user_preferences SET is_active = 0 
+         WHERE preference_type = ? AND preference_key = ?`,
+        [preference.preference_type, preference.preference_key]
+      );
+
+      // Insert new preference
+      await this.db.runAsync(
+        `INSERT INTO user_preferences (preference_type, preference_key, preference_value, unlocked_at, is_active)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          preference.preference_type,
+          preference.preference_key,
+          preference.preference_value,
+          preference.unlocked_at || null,
+          preference.is_active !== false ? 1 : 0
+        ]
+      );
+
+      console.log('✅ User preference saved successfully');
+    } catch (error) {
+      console.error('❌ Error saving user preference:', error);
+      throw error;
+    }
+  }
+
+  async getUserPreferences(type?: string): Promise<UserPreference[]> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      let query = 'SELECT * FROM user_preferences';
+      let params: any[] = [];
+
+      if (type) {
+        query += ' WHERE preference_type = ?';
+        params.push(type);
+      }
+
+      query += ' ORDER BY created_at DESC';
+
+      const result = await this.db.getAllAsync(query, params);
+
+      const preferences: UserPreference[] = result.map((row: any) => ({
+        id: row.id,
+        preference_type: row.preference_type,
+        preference_key: row.preference_key,
+        preference_value: row.preference_value,
+        unlocked_at: row.unlocked_at,
+        is_active: Boolean(row.is_active),
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
+
+      console.log('✅ Retrieved user preferences:', preferences.length);
+      return preferences;
+    } catch (error) {
+      console.error('❌ Error getting user preferences:', error);
+      throw error;
+    }
+  }
+
+  async getActiveTheme(): Promise<string> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const result = await this.db.getFirstAsync(
+        `SELECT preference_value FROM user_preferences 
+         WHERE preference_type = 'theme' AND is_active = 1 
+         ORDER BY updated_at DESC LIMIT 1`
+      );
+      
+      return result ? (result as any).preference_value : 'default';
+    } catch (error) {
+      console.error('❌ Error getting active theme:', error);
+      return 'default'; // Fallback to default theme
     }
   }
 }
