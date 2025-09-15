@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { useUserStore } from '../../stores';
+import { useSavingsStore } from '../../stores/savingsStore';
 
 export default function Settings() {
   const [isEditing, setIsEditing] = useState(false);
@@ -23,6 +24,8 @@ export default function Settings() {
     updateProfile,
     clearProfile,
   } = useUserStore();
+
+  const { unlockedThemes, activeTheme, activateTheme } = useSavingsStore();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -328,6 +331,88 @@ export default function Settings() {
     </View>
   );
 
+  const renderThemeSection = () => {
+    // Define theme colors and names
+    const themeConfig = {
+      bronze_theme: { name: 'Bronze', colors: { primary: '#CD7F32', secondary: '#B87333' }, emoji: '🥉' },
+      silver_theme: { name: 'Silver', colors: { primary: '#C0C0C0', secondary: '#A8A8A8' }, emoji: '🥈' },
+      gold_theme: { name: 'Gold', colors: { primary: '#FFD700', secondary: '#FFC107' }, emoji: '🥇' },
+      platinum_theme: { name: 'Platinum', colors: { primary: '#E5E4E2', secondary: '#D3D3D3' }, emoji: '💎' },
+      diamond_theme: { name: 'Diamond', colors: { primary: '#B9F2FF', secondary: '#87CEEB' }, emoji: '💎' },
+      elite_theme: { name: 'Elite', colors: { primary: '#8A2BE2', secondary: '#9932CC' }, emoji: '👑' }
+    };
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🎨 Theme Customization</Text>
+        <Text style={styles.sectionSubtitle}>
+          Unlock themes by reaching savings milestones
+        </Text>
+        
+        <View style={styles.themeGrid}>
+          {Object.entries(themeConfig).map(([themeKey, theme]) => {
+            const isUnlocked = unlockedThemes.some(t => t.preference_key === themeKey);
+            const isActive = activeTheme === themeKey;
+            
+            return (
+              <TouchableOpacity
+                key={themeKey}
+                style={[
+                  styles.themeCard,
+                  isActive && styles.activeThemeCard,
+                  !isUnlocked && styles.lockedThemeCard
+                ]}
+                disabled={!isUnlocked}
+                onPress={async () => {
+                  if (isUnlocked) {
+                    const success = await activateTheme(themeKey);
+                    if (success) {
+                      console.log('✅ Theme switched to:', themeKey);
+                    } else {
+                      console.error('❌ Failed to switch theme');
+                    }
+                  }
+                }}
+              >
+                <View style={styles.themePreview}>
+                  <View 
+                    style={[
+                      styles.themeColorPrimary, 
+                      { backgroundColor: theme.colors.primary },
+                      !isUnlocked && styles.lockedColor
+                    ]} 
+                  />
+                  <View 
+                    style={[
+                      styles.themeColorSecondary, 
+                      { backgroundColor: theme.colors.secondary },
+                      !isUnlocked && styles.lockedColor
+                    ]} 
+                  />
+                </View>
+                
+                <View style={styles.themeInfo}>
+                  <Text style={styles.themeEmoji}>{theme.emoji}</Text>
+                  <Text style={[styles.themeName, !isUnlocked && styles.lockedText]}>
+                    {theme.name}
+                  </Text>
+                  {isActive && <Text style={styles.activeText}>Active</Text>}
+                  {!isUnlocked && <Text style={styles.lockedText}>🔒 Locked</Text>}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        
+        <View style={styles.themeStats}>
+          <Text style={styles.themeStatsText}>
+            Unlocked: {unlockedThemes.length}/6 themes
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
@@ -374,6 +459,9 @@ export default function Settings() {
             <Text style={styles.settingValue}>PHP (₱)</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Theme Customization */}
+        {renderThemeSection()}
 
         {/* Danger Zone */}
         <View style={styles.section}>
@@ -672,5 +760,90 @@ const styles = StyleSheet.create({
   selectedLocationOptionText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+
+  // Theme Section Styles
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  themeCard: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  activeThemeCard: {
+    borderColor: '#2196F3',
+    backgroundColor: '#f0f8ff',
+  },
+  lockedThemeCard: {
+    opacity: 0.6,
+    backgroundColor: '#f5f5f5',
+  },
+  themePreview: {
+    flexDirection: 'row',
+    height: 30,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  themeColorPrimary: {
+    flex: 2,
+  },
+  themeColorSecondary: {
+    flex: 1,
+  },
+  lockedColor: {
+    backgroundColor: '#d0d0d0',
+  },
+  themeInfo: {
+    alignItems: 'center',
+  },
+  themeEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  themeName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  activeText: {
+    fontSize: 10,
+    color: '#2196F3',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  lockedText: {
+    fontSize: 10,
+    color: '#999',
+  },
+  themeStats: {
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  themeStatsText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
 });

@@ -35,6 +35,8 @@ export default function Ledger() {
   const [entryType, setEntryType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAchievementModal, setShowAchievementModal] = useState(false);
+  const [newAchievements, setNewAchievements] = useState<UserAchievement[]>([]);
 
   // Initialize data on component mount
   useEffect(() => {
@@ -65,7 +67,14 @@ export default function Ledger() {
     >
       {/* Balance Card */}
       <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Total Savings</Text>
+        <View style={styles.balanceHeader}>
+          <Text style={styles.balanceLabel}>Total Savings</Text>
+          {currentTier && (
+            <View style={styles.tierBadge}>
+              <Text style={styles.tierBadgeText}>🏆 {currentTier.name}</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
           <Text style={styles.addButtonText}>+ Add Entry</Text>
@@ -219,10 +228,8 @@ export default function Ledger() {
 
                       // Show achievement modal if new achievements unlocked
                       if (result.newAchievements.length > 0) {
-                        Alert.alert(
-                          'Achievement Unlocked!',
-                          `Congratulations! You've unlocked ${result.newAchievements.length} new achievement${result.newAchievements.length > 1 ? 's' : ''}!`
-                        );
+                        setNewAchievements(result.newAchievements);
+                        setShowAchievementModal(true);
                       }
 
                       logger.info('✅ Savings entry saved successfully');
@@ -243,6 +250,46 @@ export default function Ledger() {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Achievement Notification Modal */}
+      <Modal
+        visible={showAchievementModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowAchievementModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.achievementModalContent}>
+            <Text style={styles.achievementModalTitle}>🎉 Achievement Unlocked!</Text>
+            <Text style={styles.achievementModalSubtitle}>
+              Congratulations! You've unlocked {newAchievements.length} new achievement{newAchievements.length > 1 ? 's' : ''}!
+            </Text>
+            
+            <View style={styles.achievementsList}>
+              {newAchievements.map((achievement, index) => (
+                <View key={achievement.id} style={styles.achievementItem}>
+                  <Text style={styles.achievementEmoji}>
+                    {achievement.achievement_type === 'tier' ? '🏆' : '⭐'}
+                  </Text>
+                  <View style={styles.achievementInfo}>
+                    <Text style={styles.achievementName}>{achievement.achievement_name}</Text>
+                    <Text style={styles.achievementType}>
+                      {achievement.achievement_type === 'tier' ? 'Tier Achievement' : 'Milestone Achievement'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+            
+            <TouchableOpacity
+              style={styles.achievementModalButton}
+              onPress={() => setShowAchievementModal(false)}
+            >
+              <Text style={styles.achievementModalButtonText}>Awesome!</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -283,6 +330,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2e7d32',
     marginBottom: 16,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
+  },
+  tierBadge: {
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2196f3',
+  },
+  tierBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1976d2',
   },
   addButton: {
     backgroundColor: '#4caf50',
@@ -497,5 +564,72 @@ const styles = StyleSheet.create({
   },
   withdrawalAmount: {
     color: '#f44336',
+  },
+  // Achievement Modal Styles
+  achievementModalContent: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    maxHeight: '80%',
+  },
+  achievementModalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  achievementModalSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  achievementsList: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4caf50',
+  },
+  achievementEmoji: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  achievementInfo: {
+    flex: 1,
+  },
+  achievementName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  achievementType: {
+    fontSize: 14,
+    color: '#666',
+    textTransform: 'capitalize',
+  },
+  achievementModalButton: {
+    backgroundColor: '#4caf50',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minWidth: 120,
+  },
+  achievementModalButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,17 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '../../stores/userStore';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { useBillsStore } from '../../stores/billsStore';
+import { useSavingsStore } from '../../stores/savingsStore';
 
 export default function Profile() {
   const router = useRouter();
   const { profile, totalHouseholdIncome, calculateRecommendedBudget, getRegionalData } = useUserStore();
   const { currentBudget } = useBudgetStore();
   const { monthlyTotal } = useBillsStore();
+  const { currentTier, achievements, stats, currentBalance } = useSavingsStore();
+  const [showAchievementsModal, setShowAchievementsModal] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
@@ -91,6 +95,161 @@ export default function Profile() {
     </View>
   );
 
+  const renderGamificationSection = () => (
+    <View style={styles.gamificationCard}>
+      <Text style={styles.cardTitle}>🏆 Savings Progress</Text>
+      
+      {/* Current Tier Display */}
+      <View style={styles.tierContainer}>
+        <View style={styles.tierBadge}>
+          <Text style={styles.tierEmoji}>{getTierEmoji(currentTier.name)}</Text>
+          <View style={styles.tierInfo}>
+            <Text style={styles.tierName}>{currentTier.name}</Text>
+            <Text style={styles.tierBalance}>₱{currentBalance.toLocaleString()}</Text>
+          </View>
+          <View style={styles.tierProgress}>
+            <Text style={styles.progressText}>{Math.round(currentTier.progress)}%</Text>
+          </View>
+        </View>
+        
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBar, { width: `${currentTier.progress}%` }]} />
+        </View>
+        
+        {currentTier.nextTier && (
+          <Text style={styles.nextTierText}>
+            Next: {currentTier.nextTier.name} at ₱{currentTier.nextTier.threshold.toLocaleString()}
+          </Text>
+        )}
+      </View>
+
+      {/* Recent Achievements */}
+      <View style={styles.achievementsContainer}>
+        <Text style={styles.achievementsTitle}>Recent Achievements</Text>
+        {achievements.length === 0 ? (
+          <Text style={styles.noAchievements}>Start saving to unlock achievements!</Text>
+        ) : (
+          <View style={styles.achievementsList}>
+            {achievements.slice(0, 3).map((achievement, index) => (
+              <View key={achievement.id || index} style={styles.achievementItem}>
+                <Text style={styles.achievementEmoji}>
+                  {achievement.achievement_type === 'tier' ? '🎖️' : '🏅'}
+                </Text>
+                <View style={styles.achievementInfo}>
+                  <Text style={styles.achievementName}>{achievement.achievement_name}</Text>
+                  <Text style={styles.achievementDate}>
+                    {new Date(achievement.achieved_at).toLocaleDateString()}
+                  </Text>
+                </View>
+              </View>
+            ))}
+            {achievements.length > 3 && (
+              <TouchableOpacity 
+                style={styles.viewAllButton}
+                onPress={() => setShowAchievementsModal(true)}
+              >
+                <Text style={styles.viewAllText}>View all {achievements.length} achievements</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Quick Stats */}
+      {stats && (
+        <View style={styles.quickStats}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.totalEntries}</Text>
+            <Text style={styles.statLabel}>Transactions</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>₱{Math.round(stats.averageEntry).toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Avg Entry</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>₱{Math.round(stats.monthlyAverage).toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Monthly Avg</Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const getTierEmoji = (tierName: string) => {
+    const tierEmojis: { [key: string]: string } = {
+      'Starter': '🥉',
+      'Bronze Saver': '🥉',
+      'Silver Saver': '🥈', 
+      'Gold Saver': '🥇',
+      'Platinum Saver': '💎',
+      'Diamond Saver': '💎',
+      'Elite Saver': '👑'
+    };
+    return tierEmojis[tierName] || '🏆';
+  };
+
+  const renderAchievementsModal = () => (
+    <Modal
+      visible={showAchievementsModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>🏆 All Achievements</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowAchievementsModal(false)}
+          >
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView style={styles.modalContent}>
+          {achievements.length === 0 ? (
+            <View style={styles.emptyModalState}>
+              <Text style={styles.emptyModalText}>No achievements yet!</Text>
+              <Text style={styles.emptyModalSubtext}>Start saving to unlock your first achievement.</Text>
+            </View>
+          ) : (
+            <View style={styles.allAchievementsList}>
+              {achievements.map((achievement, index) => (
+                <View key={achievement.id || index} style={styles.fullAchievementItem}>
+                  <View style={styles.achievementLeft}>
+                    <Text style={styles.fullAchievementEmoji}>
+                      {achievement.achievement_type === 'tier' ? '🎖️' : '🏅'}
+                    </Text>
+                    <View style={styles.fullAchievementInfo}>
+                      <Text style={styles.fullAchievementName}>{achievement.achievement_name}</Text>
+                      <Text style={styles.achievementType}>
+                        {achievement.achievement_type === 'tier' ? 'Tier Achievement' : 'Milestone Achievement'}
+                      </Text>
+                      <Text style={styles.achievementAmount}>
+                        Achieved at ₱{achievement.total_savings_at_achievement?.toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.achievementRight}>
+                    <Text style={styles.fullAchievementDate}>
+                      {new Date(achievement.achieved_at).toLocaleDateString()}
+                    </Text>
+                    <Text style={styles.achievementTime}>
+                      {new Date(achievement.achieved_at).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
   const renderQuickActions = () => (
     <View style={styles.actionsCard}>
       <Text style={styles.cardTitle}>Quick Actions</Text>
@@ -137,8 +296,10 @@ export default function Profile() {
       <ScrollView style={styles.scrollView}>
         {renderProfileSummary()}
         {renderFinancialOverview()}
+        {renderGamificationSection()}
         {renderQuickActions()}
       </ScrollView>
+      {renderAchievementsModal()}
     </SafeAreaView>
   );
 }
@@ -286,5 +447,257 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 18,
+  },
+
+  // Gamification Section
+  gamificationCard: {
+    backgroundColor: '#fff',
+    margin: 16,
+    marginTop: 0,
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tierContainer: {
+    marginBottom: 20,
+  },
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  tierEmoji: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  tierInfo: {
+    flex: 1,
+  },
+  tierName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  tierBalance: {
+    fontSize: 16,
+    color: '#2196F3',
+    fontWeight: '600',
+  },
+  tierProgress: {
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4caf50',
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#4caf50',
+    borderRadius: 4,
+  },
+  nextTierText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  achievementsContainer: {
+    marginBottom: 20,
+  },
+  achievementsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  noAchievements: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingVertical: 16,
+  },
+  achievementsList: {
+    // Container for achievements list
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  achievementEmoji: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  achievementInfo: {
+    flex: 1,
+  },
+  achievementName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  achievementDate: {
+    fontSize: 12,
+    color: '#666',
+  },
+  viewAllButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#2196F3',
+    fontWeight: '600',
+  },
+  quickStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2196F3',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+
+  // Achievement Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  emptyModalState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyModalText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  emptyModalSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  allAchievementsList: {
+    gap: 12,
+  },
+  fullAchievementItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  achievementLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  fullAchievementEmoji: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  fullAchievementInfo: {
+    flex: 1,
+  },
+  fullAchievementName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  achievementType: {
+    fontSize: 12,
+    color: '#2196F3',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  achievementAmount: {
+    fontSize: 12,
+    color: '#666',
+  },
+  achievementRight: {
+    alignItems: 'flex-end',
+  },
+  fullAchievementDate: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  achievementTime: {
+    fontSize: 10,
+    color: '#999',
   },
 });
