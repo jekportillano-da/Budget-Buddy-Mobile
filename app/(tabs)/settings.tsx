@@ -13,10 +13,13 @@ import {
 } from 'react-native';
 import { useUserStore } from '../../stores';
 import { useSavingsStore } from '../../stores/savingsStore';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function Settings() {
   const [isEditing, setIsEditing] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+
+  const theme = useTheme();
 
   const {
     profile,
@@ -343,14 +346,14 @@ export default function Settings() {
     };
 
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🎨 Theme Customization</Text>
-        <Text style={styles.sectionSubtitle}>
+      <View style={[styles.section, { backgroundColor: theme.currentTheme.colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: theme.currentTheme.colors.text }]}>🎨 Theme Customization</Text>
+        <Text style={[styles.sectionSubtitle, { color: theme.currentTheme.colors.textSecondary }]}>
           Unlock themes by reaching savings milestones
         </Text>
         
         <View style={styles.themeGrid}>
-          {Object.entries(themeConfig).map(([themeKey, theme]) => {
+          {Object.entries(themeConfig).map(([themeKey, themeData]) => {
             const isUnlocked = unlockedThemes.some(t => t.preference_key === themeKey);
             const isActive = activeTheme === themeKey;
             
@@ -359,8 +362,9 @@ export default function Settings() {
                 key={themeKey}
                 style={[
                   styles.themeCard,
-                  isActive && styles.activeThemeCard,
-                  !isUnlocked && styles.lockedThemeCard
+                  { backgroundColor: theme.currentTheme.colors.background, borderColor: theme.currentTheme.colors.textSecondary },
+                  isActive && { borderColor: theme.currentTheme.colors.primary, borderWidth: 3 },
+                  !isUnlocked && { opacity: 0.5 }
                 ]}
                 disabled={!isUnlocked}
                 onPress={async () => {
@@ -378,26 +382,30 @@ export default function Settings() {
                   <View 
                     style={[
                       styles.themeColorPrimary, 
-                      { backgroundColor: theme.colors.primary },
+                      { backgroundColor: themeData.colors.primary },
                       !isUnlocked && styles.lockedColor
                     ]} 
                   />
                   <View 
                     style={[
                       styles.themeColorSecondary, 
-                      { backgroundColor: theme.colors.secondary },
+                      { backgroundColor: themeData.colors.secondary },
                       !isUnlocked && styles.lockedColor
                     ]} 
                   />
                 </View>
                 
                 <View style={styles.themeInfo}>
-                  <Text style={styles.themeEmoji}>{theme.emoji}</Text>
-                  <Text style={[styles.themeName, !isUnlocked && styles.lockedText]}>
-                    {theme.name}
+                  <Text style={styles.themeEmoji}>{themeData.emoji}</Text>
+                  <Text style={[
+                    styles.themeName, 
+                    { color: theme.currentTheme.colors.text },
+                    !isUnlocked && { color: theme.currentTheme.colors.textSecondary }
+                  ]}>
+                    {themeData.name}
                   </Text>
-                  {isActive && <Text style={styles.activeText}>Active</Text>}
-                  {!isUnlocked && <Text style={styles.lockedText}>🔒 Locked</Text>}
+                  {isActive && <Text style={[styles.activeText, { color: theme.currentTheme.colors.primary }]}>Active</Text>}
+                  {!isUnlocked && <Text style={[styles.lockedText, { color: theme.currentTheme.colors.textSecondary }]}>🔒 Locked</Text>}
                 </View>
               </TouchableOpacity>
             );
@@ -405,7 +413,7 @@ export default function Settings() {
         </View>
         
         <View style={styles.themeStats}>
-          <Text style={styles.themeStatsText}>
+          <Text style={[styles.themeStatsText, { color: theme.currentTheme.colors.textSecondary }]}>
             Unlocked: {unlockedThemes.length}/6 themes
           </Text>
         </View>
@@ -414,17 +422,21 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
       <ScrollView style={styles.scrollView}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.currentTheme.colors.surface }]}>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Profile & Settings</Text>
+            <Text style={[styles.headerTitle, { color: theme.currentTheme.colors.text }]}>Profile & Settings</Text>
             <TouchableOpacity
-              style={[styles.editButton, isEditing && styles.cancelButton]}
+              style={[
+                styles.editButton,
+                { backgroundColor: theme.currentTheme.colors.primary },
+                isEditing && { backgroundColor: theme.currentTheme.colors.error }
+              ]}
               onPress={isEditing ? handleCancel : () => setIsEditing(true)}
             >
-              <Text style={[styles.editButtonText, isEditing && styles.cancelButtonText]}>
+              <Text style={[styles.editButtonText, { color: theme.currentTheme.colors.surface }]}>
                 {isEditing ? 'Cancel' : 'Edit'}
               </Text>
             </TouchableOpacity>

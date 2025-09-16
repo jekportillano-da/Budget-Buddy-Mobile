@@ -13,6 +13,9 @@ import { useBillsStore } from '../../stores/billsStore';
 import { grokAIService } from '../../services/grokAIService';
 import BudgetChart from '../../components/BudgetChart';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { useTheme } from '../../contexts/ThemeContext';
+import AnimatedButton from '../../components/AnimatedButton';
+import AnimatedLoading from '../../components/AnimatedLoading';
 
 export default function Dashboard() {
   const [budgetAmount, setBudgetAmount] = useState('');
@@ -20,6 +23,8 @@ export default function Dashboard() {
   const [aiBreakdown, setAiBreakdown] = useState<any>(null);
   const [aiRecommendations, setAiRecommendations] = useState<string[]>([]);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  
+  const theme = useTheme();
   
   const { 
     currentBudget, 
@@ -89,36 +94,43 @@ export default function Dashboard() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.inputSection}>
-        <Text style={styles.title}>Budget Calculator</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
+      <View style={[styles.inputSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
+        <Text style={[styles.title, { color: theme.currentTheme.colors.text }]}>Budget Calculator</Text>
         
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Budget Amount</Text>
+          <Text style={[styles.label, { color: theme.currentTheme.colors.text }]}>Budget Amount</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { 
+              backgroundColor: theme.currentTheme.colors.background,
+              borderColor: theme.currentTheme.colors.primary,
+              color: theme.currentTheme.colors.text
+            }]}
             value={budgetAmount}
             onChangeText={setBudgetAmount}
             placeholder="Enter amount (e.g., 10000)"
+            placeholderTextColor={theme.currentTheme.colors.textSecondary}
             keyboardType="numeric"
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Duration</Text>
+          <Text style={[styles.label, { color: theme.currentTheme.colors.text }]}>Duration</Text>
           <View style={styles.durationButtons}>
             {(['daily', 'weekly', 'monthly'] as const).map((option) => (
               <TouchableOpacity
                 key={option}
                 style={[
                   styles.durationButton,
-                  duration === option && styles.durationButtonActive
+                  { backgroundColor: theme.currentTheme.colors.surface, borderColor: theme.currentTheme.colors.primary },
+                  duration === option && { backgroundColor: theme.currentTheme.colors.primary }
                 ]}
                 onPress={() => setDuration(option)}
               >
                 <Text style={[
                   styles.durationButtonText,
-                  duration === option && styles.durationButtonTextActive
+                  { color: theme.currentTheme.colors.text },
+                  duration === option && { color: theme.currentTheme.colors.surface }
                 ]}>
                   {option.charAt(0).toUpperCase() + option.slice(1)}
                 </Text>
@@ -127,24 +139,32 @@ export default function Dashboard() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.calculateButton, (isLoading || isGeneratingAI) && styles.calculateButtonDisabled]}
+        <AnimatedButton
+          title={isGeneratingAI ? '🤖 Generating AI Budget...' : 
+                 isLoading ? 'Calculating...' : 
+                 'Generate Smart Budget ✨'}
           onPress={handleCalculate}
           disabled={isLoading || isGeneratingAI}
-        >
-          <Text style={styles.calculateButtonText}>
-            {isGeneratingAI ? '🤖 Generating AI Budget...' : 
-             isLoading ? 'Calculating...' : 
-             'Generate Smart Budget'}
-          </Text>
-        </TouchableOpacity>
+          variant="primary"
+          size="large"
+          animationType="explosion"
+          style={{ marginTop: 10 }}
+        />
       </View>
+
+      {/* Loading Animation */}
+      <AnimatedLoading
+        isLoading={isLoading || isGeneratingAI}
+        type="sparkles"
+        text={isGeneratingAI ? "AI is crafting your budget..." : "Calculating budget..."}
+        overlay={true}
+      />
 
       {/* AI-Powered Comprehensive Breakdown */}
       {aiBreakdown && (
-        <View style={styles.resultsSection}>
-          <Text style={styles.sectionTitle}>🤖 AI-Powered Budget Breakdown</Text>
-          <Text style={styles.aiSubtitle}>
+        <View style={[styles.resultsSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.currentTheme.colors.text }]}>🤖 AI-Powered Budget Breakdown</Text>
+          <Text style={[styles.aiSubtitle, { color: theme.currentTheme.colors.textSecondary }]}>
             Smart allocation based on your bills + Philippines financial best practices
           </Text>
           

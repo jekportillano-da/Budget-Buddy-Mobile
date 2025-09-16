@@ -204,30 +204,36 @@ Budget-Buddy-Mobile/
 ├── app/                    # File-based routing (Expo Router)
 │   ├── (tabs)/            # Tab navigation screens
 │   │   ├── bills.tsx      # Bill management
-│   │   ├── dashboard.tsx  # Main dashboard
-│   │   ├── insights.tsx   # AI insights
-│   │   ├── profile.tsx    # User profile
-│   │   └── settings.tsx   # App settings
-│   ├── _layout.tsx        # Root layout component
+│   │   ├── dashboard.tsx  # Main dashboard with animated components
+│   │   ├── insights.tsx   # AI insights & analytics
+│   │   ├── ledger.tsx     # Savings tracking with celebrations
+│   │   ├── profile.tsx    # User profile & gamification
+│   │   └── settings.tsx   # App settings & theme customization
+│   ├── _layout.tsx        # Root layout with theme provider
 │   └── index.tsx          # Welcome/landing screen
 ├── assets/                # Static assets
 │   ├── icon.png          # App icon
-│   ├── splash.png        # Splash screen
+│   ├── splash-icon.png   # Splash screen
 │   └── adaptive-icon.png # Android adaptive icon
 ├── components/            # Reusable UI components
-│   ├── BudgetChart.tsx   # Budget visualization
-│   ├── DataPersistenceTest.tsx
-│   └── navigation/       # Navigation components
+│   ├── AnimatedButton.tsx     # Explosive interactive buttons
+│   ├── AnimatedLoading.tsx    # Themed loading animations
+│   ├── BudgetChart.tsx        # Budget visualization
+│   └── SavingsCelebration.tsx # Spectacular savings celebrations
+├── contexts/              # React Context providers
+│   └── ThemeContext.tsx   # App-wide theme management
 ├── services/             # Business logic & API services
-│   ├── budgetService.ts  # Budget management
-│   ├── databaseService.ts # Database operations
-│   ├── grokAIService.ts  # AI integration
+│   ├── budgetService.ts  # Budget calculations
+│   ├── databaseService.ts # SQLite database operations
+│   ├── grokAIService.ts  # AI-powered insights
+│   ├── savingsService.ts # Gamification & savings logic
 │   └── index.ts          # Service exports
 ├── stores/               # State management (Zustand)
-│   ├── billsStore.ts     # Bills state
-│   ├── budgetStore.ts    # Budget state
-│   ├── insightsStore.ts  # Insights state
-│   ├── userStore.ts      # User state
+│   ├── billsStore.ts     # Bills state management
+│   ├── budgetStore.ts    # Budget calculations state
+│   ├── insightsStore.ts  # AI insights state
+│   ├── savingsStore.ts   # Gamification & savings state
+│   ├── userStore.ts      # User profile state
 │   └── index.ts          # Store exports
 ├── utils/                # Utility functions
 │   ├── currencyUtils.ts  # Currency formatting

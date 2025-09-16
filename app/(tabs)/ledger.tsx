@@ -14,8 +14,14 @@ import { useSavingsStore } from '../../stores/savingsStore';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { logger } from '../../utils/logger';
 import type { SavingsEntry, UserAchievement } from '../../services/databaseService';
+import { useTheme } from '../../contexts/ThemeContext';
+import AnimatedButton from '../../components/AnimatedButton';
+import SavingsCelebration from '../../components/SavingsCelebration';
+import AnimatedLoading from '../../components/AnimatedLoading';
 
 export default function Ledger() {
+  const theme = useTheme();
+  
   const {
     currentBalance,
     savingsHistory,
@@ -37,6 +43,8 @@ export default function Ledger() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   const [newAchievements, setNewAchievements] = useState<UserAchievement[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationAmount, setCelebrationAmount] = useState(0);
 
   // Initialize data on component mount
   useEffect(() => {
@@ -60,25 +68,30 @@ export default function Ledger() {
 
   return (
     <ScrollView 
-      style={styles.scrollContainer}
+      style={[styles.scrollContainer, { backgroundColor: theme.currentTheme.colors.background }]}
       refreshControl={
         <RefreshControl refreshing={isLoading} onRefresh={loadSavingsData} />
       }
     >
       {/* Balance Card */}
-      <View style={styles.balanceCard}>
+      <View style={[styles.balanceCard, { backgroundColor: theme.currentTheme.colors.surface }]}>
         <View style={styles.balanceHeader}>
-          <Text style={styles.balanceLabel}>Total Savings</Text>
+          <Text style={[styles.balanceLabel, { color: theme.currentTheme.colors.textSecondary }]}>Total Savings</Text>
           {currentTier && (
-            <View style={styles.tierBadge}>
-              <Text style={styles.tierBadgeText}>🏆 {currentTier.name}</Text>
+            <View style={[styles.tierBadge, { backgroundColor: theme.currentTheme.colors.accent }]}>
+              <Text style={[styles.tierBadgeText, { color: theme.currentTheme.colors.surface }]}>🏆 {currentTier.name}</Text>
             </View>
           )}
         </View>
-        <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
-          <Text style={styles.addButtonText}>+ Add Entry</Text>
-        </TouchableOpacity>
+        <Text style={[styles.balanceAmount, { color: theme.currentTheme.colors.primary }]}>{formatCurrency(currentBalance)}</Text>
+        <AnimatedButton
+          title="+ Add Entry"
+          onPress={() => setShowAddModal(true)}
+          variant="primary"
+          size="medium"
+          animationType="bounce"
+          style={styles.addButton}
+        />
       </View>
 
       {/* Savings History */}
@@ -196,8 +209,8 @@ export default function Ledger() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
+              <AnimatedButton
+                title={isSubmitting ? 'Adding...' : 'Add Entry ✨'}
                 onPress={async () => {
                   if (!amount) {
                     Alert.alert('Error', 'Please enter an amount');
@@ -220,6 +233,12 @@ export default function Ledger() {
                     );
 
                     if (result.success) {
+                      // Show celebration for deposits
+                      if (entryType === 'deposit') {
+                        setCelebrationAmount(amountNumber);
+                        setShowCelebration(true);
+                      }
+
                       // Reset form and close modal
                       setAmount('');
                       setEntryType('deposit');
@@ -244,11 +263,11 @@ export default function Ledger() {
                   }
                 }}
                 disabled={isSubmitting}
-              >
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting ? 'Adding...' : 'Add Entry'}
-                </Text>
-              </TouchableOpacity>
+                variant={entryType === 'deposit' ? 'success' : 'warning'}
+                size="large"
+                animationType="explosion"
+                style={styles.submitButton}
+              />
             </View>
           </View>
         </View>
@@ -293,6 +312,21 @@ export default function Ledger() {
           </View>
         </View>
       </Modal>
+
+      {/* Savings Celebration */}
+      <SavingsCelebration
+        amount={celebrationAmount}
+        isVisible={showCelebration}
+        onComplete={() => setShowCelebration(false)}
+      />
+
+      {/* Loading Animation */}
+      <AnimatedLoading
+        isLoading={isSubmitting}
+        type="coins"
+        text="Adding to your savings..."
+        overlay={true}
+      />
     </ScrollView>
   );
 }
