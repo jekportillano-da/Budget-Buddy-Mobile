@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
 import AnimatedButtonSimple from '../components/AnimatedButtonSimple';
 import AnimatedLoading from '../components/AnimatedLoading';
+import AnimatedContainer from '../components/AnimatedContainer';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -57,77 +58,83 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {mode === 'login' ? 'Login' : 'Register'}
-      </Text>
+      <AnimatedContainer delay={0} style={styles.titleContainer}>
+        <Text style={styles.title}>
+          {mode === 'login' ? 'Login' : 'Register'}
+        </Text>
+      </AnimatedContainer>
       
-      {mode === 'register' && (
+      <AnimatedContainer delay={200} style={styles.formContainer}>
+        {mode === 'register' && (
+          <TextInput
+            style={styles.input}
+            placeholder="Full Name"
+            value={fullName}
+            onChangeText={setFullName}
+            autoCapitalize="words"
+          />
+        )}
+        
         <TextInput
           style={styles.input}
-          placeholder="Full Name"
-          value={fullName}
-          onChangeText={setFullName}
-          autoCapitalize="words"
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
-      )}
+        
+        <TextInput
+          style={styles.input}
+          placeholder="Password (min 6 characters)"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        
+        {error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
+        
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <AnimatedLoading
+              isLoading={isLoading}
+              text={`${mode === 'login' ? 'Logging in' : 'Creating account'}...`}
+              size="medium"
+              type="spinner"
+            />
+          </View>
+        )}
+      </AnimatedContainer>
       
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Password (min 6 characters)"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoCapitalize="none"
-      />
-      
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
-      
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <AnimatedLoading
-            isLoading={isLoading}
-            text={`${mode === 'login' ? 'Logging in' : 'Creating account'}...`}
-            size="medium"
-            type="spinner"
-          />
-        </View>
-      )}
-      
-      <AnimatedButtonSimple
-        onPress={handleSubmit}
-        title={mode === 'login' ? 'Login' : 'Register'}
-        variant="primary"
-        disabled={isLoading}
-        style={styles.animatedButton}
-      />
-      
-      <AnimatedButtonSimple
-        onPress={switchMode}
-        title={mode === 'login' ? 'Need an account? Register' : 'Have an account? Login'}
-        variant="secondary"
-        disabled={isLoading}
-        style={styles.animatedButton}
-      />
-      
-      <AnimatedButtonSimple
-        onPress={handleGoBack}
-        title="Go Back"
-        variant="secondary"
-        disabled={isLoading}
-        style={styles.animatedButton}
-      />
+      <AnimatedContainer delay={400} style={styles.buttonsContainer}>
+        <AnimatedButtonSimple
+          onPress={handleSubmit}
+          title={mode === 'login' ? 'Login' : 'Register'}
+          variant="primary"
+          disabled={isLoading}
+          style={styles.animatedButton}
+        />
+        
+        <AnimatedButtonSimple
+          onPress={switchMode}
+          title={mode === 'login' ? 'Need an account? Register' : 'Have an account? Login'}
+          variant="secondary"
+          disabled={isLoading}
+          style={styles.animatedButton}
+        />
+        
+        <AnimatedButtonSimple
+          onPress={handleGoBack}
+          title="Go Back"
+          variant="secondary"
+          disabled={isLoading}
+          style={styles.animatedButton}
+        />
+      </AnimatedContainer>
     </View>
   );
 }
@@ -198,5 +205,17 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  formContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  buttonsContainer: {
+    width: '100%',
+    alignItems: 'center',
   },
 });

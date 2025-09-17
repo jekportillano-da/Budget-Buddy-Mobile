@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import AnimatedButtonSimple from '../components/AnimatedButtonSimple';
+import AnimatedContainer from '../components/AnimatedContainer';
 
 export default function Index() {
   const { isAuthenticated, validateSession } = useAuthStore();
@@ -37,22 +38,24 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Budget Buddy</Text>
-      <Text style={styles.subtitle}>Welcome to your personal finance manager</Text>
-      
-      <AnimatedButtonSimple
-        onPress={handleLoginTest}
-        title="Login / Register"
-        variant="primary"
-        style={styles.animatedButton}
-      />
-      
-      <AnimatedButtonSimple
-        onPress={handleNavigate}
-        title="Guest Mode"
-        variant="secondary"
-        style={styles.animatedButton}
-      />
+      <AnimatedContainer style={styles.content}>
+        <Text style={styles.title}>Budget Buddy</Text>
+        <Text style={styles.subtitle}>Welcome to your personal finance manager</Text>
+        
+        <AnimatedButtonSimple
+          onPress={handleLoginTest}
+          title="Login / Register"
+          variant="primary"
+          style={styles.animatedButton}
+        />
+        
+        <AnimatedButtonSimple
+          onPress={handleNavigate}
+          title="Guest Mode"
+          variant="secondary"
+          style={styles.animatedButton}
+        />
+      </AnimatedContainer>
     </View>
   );
 }
@@ -64,6 +67,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1e40af',
     padding: 20,
+  },
+  content: {
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,

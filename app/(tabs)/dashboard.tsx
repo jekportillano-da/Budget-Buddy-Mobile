@@ -19,6 +19,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import AnimatedButton from '../../components/AnimatedButton';
 import AnimatedLoading from '../../components/AnimatedLoading';
 import AnimatedButtonSimple from '../../components/AnimatedButtonSimple';
+import AnimatedContainer from '../../components/AnimatedContainer';
 
 export default function Dashboard() {
   const [budgetAmount, setBudgetAmount] = useState('');
@@ -113,21 +114,24 @@ export default function Dashboard() {
     <ScrollView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
       {/* User header with logout */}
       {user && (
-        <View style={[styles.headerSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
-          <Text style={[styles.welcomeText, { color: theme.currentTheme.colors.text }]}>
-            Welcome, {user.name}!
-          </Text>
-          <AnimatedButtonSimple
-            onPress={handleLogout}
-            title="Logout"
-            variant="secondary"
-            style={styles.logoutAnimatedButton}
-          />
-        </View>
+        <AnimatedContainer delay={0} style={styles.headerContainer}>
+          <View style={[styles.headerSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
+            <Text style={[styles.welcomeText, { color: theme.currentTheme.colors.text }]}>
+              Welcome, {user.name}!
+            </Text>
+            <AnimatedButtonSimple
+              onPress={handleLogout}
+              title="Logout"
+              variant="secondary"
+              style={styles.logoutAnimatedButton}
+            />
+          </View>
+        </AnimatedContainer>
       )}
       
-      <View style={[styles.inputSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
-        <Text style={[styles.title, { color: theme.currentTheme.colors.text }]}>Budget Calculator</Text>
+      <AnimatedContainer delay={200} style={styles.inputContainer}>
+        <View style={[styles.inputSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
+          <Text style={[styles.title, { color: theme.currentTheme.colors.text }]}>Budget Calculator</Text>
         
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: theme.currentTheme.colors.text }]}>Budget Amount</Text>
@@ -172,6 +176,7 @@ export default function Dashboard() {
           style={{ marginTop: 10 }}
         />
       </View>
+      </AnimatedContainer>
 
       {/* Loading Animation */}
       <AnimatedLoading
@@ -619,5 +624,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     alignItems: 'center',
+  },
+  headerContainer: {
+    width: '100%',
+  },
+  inputContainer: {
+    width: '100%',
+  },
+  resultsContainer: {
+    width: '100%',
   },
 });
