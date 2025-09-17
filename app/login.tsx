@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { router } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
 import AnimatedButtonSimple from '../components/AnimatedButtonSimple';
+import AnimatedLoading from '../components/AnimatedLoading';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -93,23 +94,40 @@ export default function LoginScreen() {
         <Text style={styles.errorText}>{error}</Text>
       )}
       
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <AnimatedLoading
+            isLoading={isLoading}
+            text={`${mode === 'login' ? 'Logging in' : 'Creating account'}...`}
+            size="medium"
+            type="spinner"
+          />
+        </View>
+      )}
+      
       <AnimatedButtonSimple
         onPress={handleSubmit}
-        title={isLoading ? 'Loading...' : (mode === 'login' ? 'Login' : 'Register')}
+        title={mode === 'login' ? 'Login' : 'Register'}
         variant="primary"
         disabled={isLoading}
         style={styles.animatedButton}
       />
       
-      <TouchableOpacity style={styles.button} onPress={switchMode}>
-        <Text style={styles.buttonText}>
-          {mode === 'login' ? 'Need an account? Register' : 'Have an account? Login'}
-        </Text>
-      </TouchableOpacity>
+      <AnimatedButtonSimple
+        onPress={switchMode}
+        title={mode === 'login' ? 'Need an account? Register' : 'Have an account? Login'}
+        variant="secondary"
+        disabled={isLoading}
+        style={styles.animatedButton}
+      />
       
-      <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleGoBack}>
-        <Text style={styles.buttonText}>Go Back</Text>
-      </TouchableOpacity>
+      <AnimatedButtonSimple
+        onPress={handleGoBack}
+        title="Go Back"
+        variant="secondary"
+        disabled={isLoading}
+        style={styles.animatedButton}
+      />
     </View>
   );
 }
@@ -174,5 +192,11 @@ const styles = StyleSheet.create({
   animatedButton: {
     width: '100%',
     marginBottom: 10,
+  },
+  loadingContainer: {
+    width: '100%',
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

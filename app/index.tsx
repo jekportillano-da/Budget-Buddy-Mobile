@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import AnimatedButtonSimple from '../components/AnimatedButtonSimple';
 
 export default function Index() {
   const { isAuthenticated, validateSession } = useAuthStore();
@@ -39,13 +40,19 @@ export default function Index() {
       <Text style={styles.title}>Budget Buddy</Text>
       <Text style={styles.subtitle}>Welcome to your personal finance manager</Text>
       
-      <TouchableOpacity style={styles.button} onPress={handleLoginTest}>
-        <Text style={styles.buttonText}>Login / Register</Text>
-      </TouchableOpacity>
+      <AnimatedButtonSimple
+        onPress={handleLoginTest}
+        title="Login / Register"
+        variant="primary"
+        style={styles.animatedButton}
+      />
       
-      <TouchableOpacity style={[styles.button, styles.testButton]} onPress={handleNavigate}>
-        <Text style={styles.buttonText}>Guest Mode</Text>
-      </TouchableOpacity>
+      <AnimatedButtonSimple
+        onPress={handleNavigate}
+        title="Guest Mode"
+        variant="secondary"
+        style={styles.animatedButton}
+      />
     </View>
   );
 }
@@ -84,5 +91,9 @@ const styles = StyleSheet.create({
     color: '#1e40af',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  animatedButton: {
+    width: '80%',
+    marginBottom: 15,
   },
 });
