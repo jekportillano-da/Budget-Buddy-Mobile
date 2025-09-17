@@ -18,6 +18,7 @@ import { formatCurrency } from '../../utils/currencyUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 import AnimatedButton from '../../components/AnimatedButton';
 import AnimatedLoading from '../../components/AnimatedLoading';
+import AnimatedButtonSimple from '../../components/AnimatedButtonSimple';
 
 export default function Dashboard() {
   const [budgetAmount, setBudgetAmount] = useState('');
@@ -116,9 +117,12 @@ export default function Dashboard() {
           <Text style={[styles.welcomeText, { color: theme.currentTheme.colors.text }]}>
             Welcome, {user.name}!
           </Text>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+          <AnimatedButtonSimple
+            onPress={handleLogout}
+            title="Logout"
+            variant="secondary"
+            style={styles.logoutAnimatedButton}
+          />
         </View>
       )}
       
@@ -145,23 +149,13 @@ export default function Dashboard() {
           <Text style={[styles.label, { color: theme.currentTheme.colors.text }]}>Duration</Text>
           <View style={styles.durationButtons}>
             {(['daily', 'weekly', 'monthly'] as const).map((option) => (
-              <TouchableOpacity
+              <AnimatedButtonSimple
                 key={option}
-                style={[
-                  styles.durationButton,
-                  { backgroundColor: theme.currentTheme.colors.surface, borderColor: theme.currentTheme.colors.primary },
-                  duration === option && { backgroundColor: theme.currentTheme.colors.primary }
-                ]}
                 onPress={() => setDuration(option)}
-              >
-                <Text style={[
-                  styles.durationButtonText,
-                  { color: theme.currentTheme.colors.text },
-                  duration === option && { color: theme.currentTheme.colors.surface }
-                ]}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
-                </Text>
-              </TouchableOpacity>
+                title={option.charAt(0).toUpperCase() + option.slice(1)}
+                variant={duration === option ? "primary" : "secondary"}
+                style={styles.durationAnimatedButton}
+              />
             ))}
           </View>
         </View>
@@ -388,6 +382,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  logoutAnimatedButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
   inputSection: {
     backgroundColor: 'white',
     padding: 20,
@@ -613,5 +611,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#333',
     lineHeight: 18,
+  },
+  durationAnimatedButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
   },
 });
