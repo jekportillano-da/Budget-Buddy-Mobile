@@ -8,8 +8,10 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { useBillsStore } from '../../stores/billsStore';
+import { useAuthStore } from '../../stores/authStore';
 import { grokAIService } from '../../services/grokAIService';
 import BudgetChart from '../../components/BudgetChart';
 import { formatCurrency } from '../../utils/currencyUtils';
@@ -35,8 +37,21 @@ export default function Dashboard() {
     getInsights 
   } = useBudgetStore();
 
+  // Get auth data
+  const { user, logout } = useAuthStore();
+
   // Get bills data
   const { bills, monthlyTotal } = useBillsStore();
+
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to logout');
+    }
+  };
 
   // Create combined breakdown using actual bills data
   const createActualBreakdown = () => {
@@ -95,6 +110,18 @@ export default function Dashboard() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
+      {/* User header with logout */}
+      {user && (
+        <View style={[styles.headerSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
+          <Text style={[styles.welcomeText, { color: theme.currentTheme.colors.text }]}>
+            Welcome, {user.name}!
+          </Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
       <View style={[styles.inputSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
         <Text style={[styles.title, { color: theme.currentTheme.colors.text }]}>Budget Calculator</Text>
         
@@ -329,6 +356,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  headerSection: {
+    backgroundColor: 'white',
+    padding: 16,
+    margin: 16,
+    marginBottom: 0,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  welcomeText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  logoutButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   inputSection: {
     backgroundColor: 'white',

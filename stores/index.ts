@@ -3,3 +3,4 @@ export * from './budgetStore';
 export * from './userStore';
 export * from './insightsStore';
 export * from './savingsStore';
+export * from './authStore';

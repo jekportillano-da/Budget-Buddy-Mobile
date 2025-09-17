@@ -1,17 +1,50 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '../stores/authStore';
 
 export default function Index() {
+  const { isAuthenticated, validateSession } = useAuthStore();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const checkAuth = async () => {
+      await validateSession();
+      setIsReady(true);
+    };
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    // Redirect authenticated users to dashboard only after component is ready
+    if (isReady && isAuthenticated) {
+      // Small delay to ensure navigation system is ready
+      setTimeout(() => {
+        router.replace('/(tabs)/dashboard');
+      }, 100);
+    }
+  }, [isAuthenticated, isReady]);
+
   const handleNavigate = () => {
     router.push('/(tabs)/dashboard');
+  };
+
+  const handleLoginTest = () => {
+    router.push('/login');
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Budget Buddy</Text>
       <Text style={styles.subtitle}>Welcome to your personal finance manager</Text>
-      <TouchableOpacity style={styles.button} onPress={handleNavigate}>
-        <Text style={styles.buttonText}>Get Started</Text>
+      
+      <TouchableOpacity style={styles.button} onPress={handleLoginTest}>
+        <Text style={styles.buttonText}>Login / Register</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={[styles.button, styles.testButton]} onPress={handleNavigate}>
+        <Text style={styles.buttonText}>Guest Mode</Text>
       </TouchableOpacity>
     </View>
   );
@@ -42,6 +75,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 8,
+  },
+  testButton: {
+    marginTop: 15,
+    backgroundColor: '#10b981',
   },
   buttonText: {
     color: '#1e40af',
