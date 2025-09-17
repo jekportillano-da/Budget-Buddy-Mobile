@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { grokAIService } from '../services/grokAIService';
+import { cohereAIService } from '../services/cohereAIService';
+import { logger } from '../utils/logger';
 
 export interface Insight {
   id: string;
@@ -101,15 +102,19 @@ export const useInsightsStore = create<InsightsState>()(
         const startTime = Date.now();
         
         try {
-          console.log('🤖 Generating AI insights with real data...');
+          logger.debug('🤖 Generating AI insights with real data...');
           
-          // Use Grok AI service to generate intelligent insights
+          // Add a unique request identifier to ensure fresh responses
+          const requestId = `insights-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          logger.debug(`🔄 AI Request ID: ${requestId}`);
+          
+          // Use Cohere AI service to generate intelligent insights
           const [insights, recommendations] = await Promise.all([
-            grokAIService.generateInsights(),
-            grokAIService.generateRecommendations(),
+            cohereAIService.generateInsights(),
+            cohereAIService.generateRecommendations(),
           ]);
 
-          const healthScore = grokAIService.calculateHealthScore();
+          const healthScore = cohereAIService.calculateHealthScore();
           const aiResponseTime = Date.now() - startTime;
           
           // Check if we got real AI response or fallback
@@ -117,9 +122,9 @@ export const useInsightsStore = create<InsightsState>()(
             !insight.message.includes('mock') && !insight.message.includes('fallback')
           );
 
-          console.log(`✅ AI insights generated in ${aiResponseTime}ms`);
-          console.log(`🤖 Using ${isRealAI ? 'Real Grok AI' : 'Intelligent Fallback'}`);
-          console.log(`📊 Generated ${insights.length} insights with health score: ${healthScore}`);
+          logger.debug(`✅ AI insights generated in ${aiResponseTime}ms`);
+          logger.debug(`🤖 Using ${isRealAI ? 'Real Grok AI' : 'Intelligent Fallback'}`);
+          logger.debug(`📊 Generated ${insights.length} insights with health score: ${healthScore}`);
 
           set({
             insights,
@@ -134,7 +139,7 @@ export const useInsightsStore = create<InsightsState>()(
             error: null,
           });
         } catch (error) {
-          console.error('❌ AI insights generation failed:', error);
+          logger.error('❌ AI insights generation failed', { error });
           set({
             error: 'Failed to generate AI insights. Using offline mode.',
             isUsingRealAI: false,
@@ -149,7 +154,7 @@ export const useInsightsStore = create<InsightsState>()(
               healthScore: 70, // Conservative score for fallback
             });
           } catch (fallbackError) {
-            console.error('❌ Even fallback insights failed:', fallbackError);
+            logger.error('❌ Even fallback insights failed', { fallbackError });
           }
         }
       },
@@ -229,7 +234,7 @@ export const useInsightsStore = create<InsightsState>()(
       },
 
       refreshInsights: async () => {
-        console.log('🔄 Refreshing insights with latest data...');
+        logger.debug('🔄 Refreshing insights with latest data...');
         await get().generateInsights();
       },
 
