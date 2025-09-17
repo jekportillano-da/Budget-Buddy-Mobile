@@ -20,6 +20,7 @@ import AnimatedButton from '../../components/AnimatedButton';
 import AnimatedLoading from '../../components/AnimatedLoading';
 import AnimatedButtonSimple from '../../components/AnimatedButtonSimple';
 import AnimatedContainer from '../../components/AnimatedContainer';
+import AIChatbot from '../../components/AIChatbot';
 
 export default function Dashboard() {
   const [budgetAmount, setBudgetAmount] = useState('');
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [aiBreakdown, setAiBreakdown] = useState<any>(null);
   const [aiRecommendations, setAiRecommendations] = useState<string[]>([]);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   
   const theme = useTheme();
   
@@ -111,23 +113,34 @@ export default function Dashboard() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
-      {/* User header with logout */}
-      {user && (
-        <AnimatedContainer delay={0} style={styles.headerContainer}>
-          <View style={[styles.headerSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
-            <Text style={[styles.welcomeText, { color: theme.currentTheme.colors.text }]}>
-              Welcome, {user.name}!
-            </Text>
-            <AnimatedButtonSimple
-              onPress={handleLogout}
-              title="Logout"
-              variant="secondary"
-              style={styles.logoutAnimatedButton}
-            />
-          </View>
-        </AnimatedContainer>
-      )}
+    <>
+      <ScrollView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
+        {/* User header with logout */}
+        {user && (
+          <AnimatedContainer delay={0} style={styles.headerContainer}>
+            <View style={[styles.headerSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
+              <Text style={[styles.welcomeText, { color: theme.currentTheme.colors.text }]}>
+                Welcome, {user.name}!
+              </Text>
+              <AnimatedButtonSimple
+                onPress={handleLogout}
+                title="Logout"
+                variant="secondary"
+                style={styles.logoutAnimatedButton}
+              />
+            </View>
+            
+            {/* AI Chat Button */}
+            <View style={styles.aiChatButtonContainer}>
+              <AnimatedButtonSimple
+                onPress={() => setShowAIChat(true)}
+                title="💬 AI Financial Assistant"
+                variant="primary"
+                style={styles.aiChatButton}
+              />
+            </View>
+          </AnimatedContainer>
+        )}
       
       <AnimatedContainer delay={200} style={styles.inputContainer}>
         <View style={[styles.inputSection, { backgroundColor: theme.currentTheme.colors.surface }]}>
@@ -348,6 +361,13 @@ export default function Dashboard() {
         </View>
       )}
     </ScrollView>
+    
+    {/* AI Chatbot Modal */}
+    <AIChatbot 
+      visible={showAIChat} 
+      onClose={() => setShowAIChat(false)} 
+    />
+    </>
   );
 }
 
@@ -633,5 +653,14 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     width: '100%',
+  },
+  aiChatButtonContainer: {
+    marginTop: 15,
+    paddingHorizontal: 20,
+  },
+  aiChatButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 25,
+    paddingVertical: 12,
   },
 });
