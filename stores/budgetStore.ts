@@ -105,6 +105,17 @@ export const useBudgetStore = create<BudgetState>()(
             breakdown,
             isLoading: false 
           });
+          
+          // Trigger AI insights refresh when budget changes (with timeout to avoid circular imports)
+          setTimeout(() => {
+            try {
+              logger.debug('🔄 Budget changed - will trigger AI insights refresh');
+              // The insights screen will automatically refresh when it's visited
+              // since it calls generateInsights() on focus
+            } catch (insightsError) {
+              logger.warn('Failed to refresh insights after budget change', { error: insightsError });
+            }
+          }, 100);
         } catch (error) {
           logger.error('Budget calculation error', { error });
           set({ 

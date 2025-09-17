@@ -708,6 +708,116 @@ Format as JSON with specific metrics, reasoning, and quantified recommendations.
     return result.choices[0]?.message?.content || '';
   }
 
+  // Chat method for AI Chatbot integration
+  async chatWithAI(userMessage: string): Promise<string> {
+    try {
+      if (!this.isConfigured()) {
+        // Return helpful fallback response when API key is not configured
+        return this.getFallbackChatResponse(userMessage);
+      }
+
+      const userData = this.getCurrentUserData();
+      const philippinesContext = this.getPhilippinesContext();
+      
+      // Create context-aware chat prompt
+      const prompt = this.createChatPrompt(userMessage, userData, philippinesContext);
+      
+      logger.debug('Sending chat message to Grok AI');
+      
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'grok-beta',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a friendly Filipino financial advisor AI. Provide practical, culturally-aware advice for Filipino households. Keep responses conversational and actionable.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error('Grok AI chat error', { status: response.status, error: errorText });
+        throw new Error(`Grok API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+      
+      logger.debug('Successfully received Grok AI chat response');
+      return aiResponse;
+      
+    } catch (error) {
+      logger.error('Error in chatWithAI', { error });
+      return this.getFallbackChatResponse(userMessage);
+    }
+  }
+
+  // Create context-rich chat prompt
+  private createChatPrompt(userMessage: string, userData: any, philippinesContext: any): string {
+    return `
+CONTEXT: You are chatting with a Filipino user about their personal finances. Provide helpful, practical advice.
+
+USER FINANCIAL PROFILE:
+- Location: ${userData.location === 'ncr' ? 'Metro Manila' : 'Province'}
+- Monthly Income: ₱${userData.totalIncome?.toLocaleString() || 'Not specified'}
+- Monthly Bills: ₱${userData.monthlyBillsTotal?.toLocaleString() || '0'}
+- Current Savings: ₱${userData.currentSavings?.toLocaleString() || '0'}
+- Savings Tier: ${userData.currentTier?.name || 'Starter'}
+
+PHILIPPINES CONTEXT:
+- Current inflation: ${philippinesContext.inflationRate}%
+- Season: ${philippinesContext.currentSeason}
+- ${userData.location === 'ncr' ? 'NCR' : 'Provincial'} minimum wage: ₱${userData.location === 'ncr' ? philippinesContext.minimumWageNCR : philippinesContext.minimumWageProvince}/day
+
+USER MESSAGE: "${userMessage}"
+
+INSTRUCTIONS:
+1. Address their specific question with practical Filipino context
+2. Reference their financial situation when relevant
+3. Provide actionable steps they can take
+4. Keep response under 200 words
+5. Be encouraging and culturally sensitive
+6. Include relevant Filipino financial tips or resources when appropriate
+
+Respond as a helpful financial advisor:`;
+  }
+
+  // Fallback chat responses when API is not configured
+  private getFallbackChatResponse(userMessage: string): string {
+    const lowerMessage = userMessage.toLowerCase();
+    
+    if (lowerMessage.includes('save') || lowerMessage.includes('savings')) {
+      return "💰 Saving tip: Start with the 50-30-20 rule - 50% needs, 30% wants, 20% savings. Even ₱100/week builds to ₱5,200/year! Consider digital banks like CIMB or ING for higher interest rates.";
+    }
+    
+    if (lowerMessage.includes('budget') || lowerMessage.includes('bills')) {
+      return "📊 Budgeting in the Philippines: Track your essentials first - rent, utilities, food. Use apps like Coins.ph for bill payments to avoid long lines. Aim to keep fixed expenses under 50% of income.";
+    }
+    
+    if (lowerMessage.includes('invest') || lowerMessage.includes('investment')) {
+      return "📈 Investment basics: Start with Pag-IBIG MP2 (tax-free, government-backed). Then consider index funds through COL Financial or First Metro Sec. Always have 6 months emergency fund first!";
+    }
+    
+    if (lowerMessage.includes('debt') || lowerMessage.includes('loan')) {
+      return "⚠️ Debt management: List all debts by interest rate. Pay minimums on all, extra on highest rate. Avoid credit card cash advances (24%+ interest). Consider debt consolidation for multiple loans.";
+    }
+    
+    return "🤖 I'm here to help with your finances! I can provide tips on saving, budgeting, investing, and managing money in the Philippines. What specific financial topic would you like to discuss?";
+  }
+
   // Alternative method that accepts data directly to avoid store access issues
   async generateBusinessIntelligenceInsightsWithData(
     bills: any[], 

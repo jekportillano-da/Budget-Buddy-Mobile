@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { useBillsStore } from '../../stores/billsStore';
 import { useAuthStore } from '../../stores/authStore';
-import { grokAIService } from '../../services/grokAIService';
+import { cohereAIService } from '../../services/cohereAIService';
 import BudgetChart from '../../components/BudgetChart';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -100,7 +100,7 @@ export default function Dashboard() {
       await calculateBudget(parseFloat(budgetAmount), duration);
       
       // Generate AI-powered comprehensive breakdown
-      const smartBreakdown = await grokAIService.generateSmartBudgetBreakdown(parseFloat(budgetAmount));
+      const smartBreakdown = await cohereAIService.generateSmartBudgetBreakdown(parseFloat(budgetAmount));
       setAiBreakdown(smartBreakdown);
       setAiRecommendations(smartBreakdown.aiRecommendations);
       

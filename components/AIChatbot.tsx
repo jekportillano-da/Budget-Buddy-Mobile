@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useSavingsStore } from '../stores/savingsStore';
+import { cohereAIService } from '../services/cohereAIService';
 import AnimatedContainer from './AnimatedContainer';
 import AnimatedButtonSimple from './AnimatedButtonSimple';
 import AnimatedLoading from './AnimatedLoading';
@@ -61,8 +62,8 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
     setIsLoading(true);
 
     try {
-      // Simulate AI response for now (will integrate with grokAIService next)
-      const aiResponse = await simulateAIResponse(inputText.trim(), currentTier.name, currentBalance);
+      // Use real Cohere AI service for response
+      const aiResponse = await cohereAIService.chatWithAI(inputText.trim());
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -73,6 +74,7 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
+      console.error('AI Chat Error:', error);
       Alert.alert('Error', 'Failed to get AI response. Please try again.');
     } finally {
       setIsLoading(false);
@@ -186,21 +188,6 @@ function getTierFeatureText(tierLevel: number): string {
   if (tierLevel >= 2) return '✨ Premium features available! Upgrade to Gold for advanced insights.';
   if (tierLevel >= 1) return '💫 Basic AI chat unlocked! Upgrade to Silver for more features.';
   return '🔒 Save more to unlock advanced AI features!';
-}
-
-// Temporary simulation function (will replace with real AI service)
-async function simulateAIResponse(userMessage: string, tier: string, balance: number): Promise<string> {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
-  const responses = [
-    `Based on your ${tier} status and ₱${balance.toLocaleString()} savings, I recommend focusing on building your emergency fund first.`,
-    `Great question! As a ${tier}, you have access to personalized advice. Consider the 50/30/20 rule for Filipino budgets.`,
-    `I can see you're doing well with ₱${balance.toLocaleString()} saved! Let's work on optimizing your spending categories.`,
-    `For someone at ${tier} level, I suggest exploring investment options suitable for the Philippines market.`,
-  ];
-
-  return responses[Math.floor(Math.random() * responses.length)];
 }
 
 const styles = StyleSheet.create({
