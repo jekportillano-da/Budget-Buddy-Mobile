@@ -21,6 +21,10 @@ import AnimatedLoading from '../../components/AnimatedLoading';
 import AnimatedButtonSimple from '../../components/AnimatedButtonSimple';
 import AnimatedContainer from '../../components/AnimatedContainer';
 import AIChatbot from '../../components/AIChatbot';
+import ComponentErrorBoundary from '../../components/ComponentErrorBoundary';
+import LoadingWrapper from '../../components/LoadingWrapper';
+import { useToast } from '../../components/ToastProvider';
+import useOfflineManager from '../../hooks/useOfflineManager';
 
 export default function Dashboard() {
   const [budgetAmount, setBudgetAmount] = useState('');
@@ -31,6 +35,8 @@ export default function Dashboard() {
   const [showAIChat, setShowAIChat] = useState(false);
   
   const theme = useTheme();
+  const { showToast } = useToast();
+  const { isOnline, queueOperation, getOfflineInfo } = useOfflineManager();
   
   const { 
     currentBudget, 
@@ -78,21 +84,65 @@ export default function Dashboard() {
   // Memoize logout handler
   const handleLogout = useCallback(async () => {
     try {
+      showToast({
+        type: 'info',
+        message: 'Signing out...',
+        duration: 1000,
+      });
+      
       await logout();
+      
+      showToast({
+        type: 'success',
+        message: 'Successfully signed out. See you soon! 👋',
+      });
+      
       router.replace('/');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to logout');
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        message: error.message || 'Failed to logout',
+        action: {
+          label: 'Retry',
+          onPress: handleLogout
+        }
+      });
     }
-  }, [logout]);
+  }, [logout, showToast]);
 
   const handleCalculate = async () => {
     if (!budgetAmount || parseFloat(budgetAmount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid budget amount');
+      showToast({
+        type: 'error',
+        message: 'Please enter a valid budget amount',
+      });
+      return;
+    }
+
+    if (!isOnline) {
+      showToast({
+        type: 'warning',
+        message: 'You are offline. Budget calculation will be processed when connection is restored.',
+        duration: 4000,
+      });
+      
+      // Queue operation for when online
+      await queueOperation('create', 'budget_calculation', {
+        amount: parseFloat(budgetAmount),
+        duration,
+        timestamp: Date.now(),
+      });
       return;
     }
 
     try {
       setIsGeneratingAI(true);
+      
+      showToast({
+        type: 'info',
+        message: 'Calculating your smart budget...',
+        duration: 2000,
+      });
       
       // Calculate basic budget breakdown
       await calculateBudget(parseFloat(budgetAmount), duration);
@@ -102,8 +152,27 @@ export default function Dashboard() {
       setAiBreakdown(smartBreakdown);
       setAiRecommendations(smartBreakdown.aiRecommendations);
       
-    } catch (error) {
-      Alert.alert('Error', 'Failed to calculate budget. Please try again.');
+      showToast({
+        type: 'success',
+        message: 'Budget calculated successfully! 🎉',
+        action: {
+          label: 'View Details',
+          onPress: () => {
+            // Scroll to budget chart or expand details
+          }
+        }
+      });
+      
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        message: error.message || 'Failed to calculate budget. Please try again.',
+        duration: 5000,
+        action: {
+          label: 'Retry',
+          onPress: handleCalculate
+        }
+      });
       console.error('Budget calculation error:', error);
     } finally {
       setIsGeneratingAI(false);
@@ -206,7 +275,29 @@ export default function Dashboard() {
           </Text>
           
           {/* AI Budget Chart */}
-          <BudgetChart breakdown={aiBreakdown} />
+          <ComponentErrorBoundary 
+            componentName="AI Budget Chart"
+            fallback={
+              <View style={styles.errorFallback}>
+                <Text>Unable to load AI budget chart</Text>
+              </View>
+            }
+          >
+            <LoadingWrapper 
+              isLoading={false} 
+              error={null}
+              emptyState={{
+                message: "AI budget breakdown will appear here after calculation",
+                action: {
+                  label: "Calculate Budget",
+                  onPress: handleCalculate
+                }
+              }}
+              isEmpty={!aiBreakdown}
+            >
+              <BudgetChart breakdown={aiBreakdown} />
+            </LoadingWrapper>
+          </ComponentErrorBoundary>
           
           {/* Comprehensive Summary */}
           <View style={styles.billsSummary}>
@@ -660,5 +751,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A90E2',
     borderRadius: 25,
     paddingVertical: 12,
+  },
+  errorFallback: {
+    padding: 20,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    alignItems: 'center',
+    margin: 16,
   },
 });
