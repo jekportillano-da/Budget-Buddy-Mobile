@@ -187,7 +187,20 @@ class DatabaseService {
         );`
       );
       
+      // Create performance indexes for frequently queried columns
+      await this.db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_budget_records_created_at ON budget_records(created_at);
+        CREATE INDEX IF NOT EXISTS idx_savings_entries_date_entered ON savings_entries(date_entered);
+        CREATE INDEX IF NOT EXISTS idx_savings_entries_entry_type ON savings_entries(entry_type);
+        CREATE INDEX IF NOT EXISTS idx_user_achievements_achieved_at ON user_achievements(achieved_at);
+        CREATE INDEX IF NOT EXISTS idx_user_achievements_achievement_type ON user_achievements(achievement_type);
+        CREATE INDEX IF NOT EXISTS idx_sync_queue_timestamp ON sync_queue(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_savings_goals_target_date ON savings_goals(target_date);
+        CREATE INDEX IF NOT EXISTS idx_savings_goals_is_active ON savings_goals(is_active);
+      `);
+      
       console.log('✅ Database tables created successfully');
+      console.log('✅ Performance indexes created');
       console.log('✅ Phase 2 savings tables initialized');
     } catch (error) {
       console.error('❌ Error creating tables:', error);

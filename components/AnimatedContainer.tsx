@@ -9,13 +9,13 @@ interface AnimatedContainerProps {
   slideDistance?: number;
 }
 
-export default function AnimatedContainer({
+const AnimatedContainer: React.FC<AnimatedContainerProps> = React.memo(({
   children,
   style,
   delay = 0,
   duration = 600,
   slideDistance = 30,
-}: AnimatedContainerProps) {
+}: AnimatedContainerProps) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(slideDistance)).current;
 
@@ -51,4 +51,9 @@ export default function AnimatedContainer({
       {children}
     </Animated.View>
   );
-}
+});
+
+// Add display name for debugging
+AnimatedContainer.displayName = 'AnimatedContainer';
+
+export default AnimatedContainer;

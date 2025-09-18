@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -47,18 +47,8 @@ export default function Dashboard() {
   // Get bills data
   const { bills, monthlyTotal } = useBillsStore();
 
-  // Logout handler
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.replace('/');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to logout');
-    }
-  };
-
-  // Create combined breakdown using actual bills data
-  const createActualBreakdown = () => {
+  // Memoize expensive breakdown calculation
+  const actualBreakdown = useMemo(() => {
     if (bills.length === 0) return null;
 
     // Group bills by category
@@ -83,9 +73,17 @@ export default function Dashboard() {
       total_essential: totalEssential,
       total_savings: estimatedSavings,
     };
-  };
+  }, [bills, breakdown]);
 
-  const actualBreakdown = createActualBreakdown();
+  // Memoize logout handler
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      router.replace('/');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to logout');
+    }
+  }, [logout]);
 
   const handleCalculate = async () => {
     if (!budgetAmount || parseFloat(budgetAmount) <= 0) {

@@ -7,7 +7,7 @@ interface BudgetChartProps {
   breakdown: BudgetBreakdown;
 }
 
-const BudgetChart: React.FC<BudgetChartProps> = ({ 
+const BudgetChart: React.FC<BudgetChartProps> = React.memo(({ 
   breakdown
 }) => {
   if (!breakdown || !breakdown.categories) {
@@ -112,7 +112,10 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
       </View>
     </View>
   );
-};
+});
+
+// Add display name for debugging
+BudgetChart.displayName = 'BudgetChart';
 
 const styles = StyleSheet.create({
   container: {

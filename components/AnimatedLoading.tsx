@@ -19,13 +19,13 @@ interface AnimatedLoadingProps {
 
 const { width, height } = Dimensions.get('window');
 
-export default function AnimatedLoading({
+const AnimatedLoading: React.FC<AnimatedLoadingProps> = React.memo(({
   isLoading,
   size = 'medium',
   type = 'spinner',
   text,
   overlay = false,
-}: AnimatedLoadingProps) {
+}: AnimatedLoadingProps) => {
   const theme = useTheme();
   const spinAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -350,7 +350,10 @@ export default function AnimatedLoading({
       </View>
     </View>
   );
-}
+});
+
+// Add display name for debugging
+AnimatedLoading.displayName = 'AnimatedLoading';
 
 const styles = StyleSheet.create({
   container: {
@@ -412,3 +415,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export default AnimatedLoading;
