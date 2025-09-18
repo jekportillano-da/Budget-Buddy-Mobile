@@ -19,14 +19,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first (for better caching)
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . .
+# Copy backend project
+COPY backend/ .
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
