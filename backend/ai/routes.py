@@ -26,6 +26,8 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # External API configuration
+COHERE_API_KEY = config("COHERE_API_KEY", default="")
+COHERE_API_URL = config("COHERE_API_URL", default="https://api.cohere.ai/v1")
 GROK_API_KEY = config("GROK_API_KEY", default="")
 GROK_API_URL = config("GROK_API_URL", default="https://api.x.ai/v1")
 CLAUDE_API_KEY = config("CLAUDE_API_KEY", default="")
@@ -83,6 +85,52 @@ async def record_api_usage(
     )
     db.add(usage)
     db.commit()
+
+async def call_cohere_api(prompt: str, model: str = "command-r-08-2024") -> dict:
+    """Call Cohere AI API with error handling"""
+    if not COHERE_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Cohere AI service not configured"
+        )
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{COHERE_API_URL}/chat",
+                headers={
+                    "Authorization": f"Bearer {COHERE_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7,
+                    "max_tokens": 1000
+                },
+                timeout=30.0
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Cohere API error: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="AI service temporarily unavailable"
+                )
+            
+            return response.json()
+            
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="AI service timeout"
+        )
+    except Exception as e:
+        logger.error(f"Cohere API call failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI service error"
+        )
 
 async def call_grok_api(prompt: str, model: str = "grok-beta") -> dict:
     """Call Grok AI API with error handling"""
@@ -168,9 +216,9 @@ User Question: {request.message}
 Provide helpful, specific advice tailored to Filipino financial context. Keep responses concise and actionable.
 """
         
-        # Call Grok AI
-        ai_response = await call_grok_api(context_prompt)
-        response_text = ai_response["choices"][0]["message"]["content"]
+        # Call Cohere AI (Primary AI service)
+        ai_response = await call_cohere_api(context_prompt)
+        response_text = ai_response["message"]["content"]["text"]
         
         # Record usage
         await record_api_usage(current_user, "chat", db)
@@ -246,9 +294,9 @@ Provide a detailed financial analysis in JSON format with:
 Format as structured JSON with clear sections and Filipino peso amounts.
 """
         
-        # Call Grok AI for detailed analysis
-        ai_response = await call_grok_api(analysis_prompt, model="grok-beta")
-        response_text = ai_response["choices"][0]["message"]["content"]
+        # Call Cohere AI for detailed analysis  
+        ai_response = await call_cohere_api(analysis_prompt, model="command-r-08-2024")
+        response_text = ai_response["message"]["content"]["text"]
         
         # Record usage
         await record_api_usage(current_user, "insights", db)
