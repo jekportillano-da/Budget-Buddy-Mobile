@@ -1,2 +1,0 @@
-# Railway requirements - installs backend dependencies
--r backend/requirements.txt

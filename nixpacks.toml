@@ -1,5 +1,8 @@
-[build]
-providers = ["python"]
+[phases.setup]
+nixPkgs = ["nodejs_18", "python3", "python3Packages.pip"]
 
-[variables]
-PYTHON_VERSION = "3.12"
+[phases.install]
+cmds = ["npm ci", "cd backend && pip install -r requirements.txt"]
+
+[start]
+cmd = "cd backend && python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT"
