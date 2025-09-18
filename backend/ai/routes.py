@@ -1,5 +1,5 @@
 """
-AI service routes with tier-based access control
+Generic AI proxy service - Standard implementation
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,7 +25,7 @@ from .models import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# External API configuration
+# Generic API configuration
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 COHERE_API_URL = config("COHERE_API_URL", default="https://api.cohere.ai/v1")
 GROK_API_KEY = config("GROK_API_KEY", default="")
@@ -203,17 +203,17 @@ async def ai_chat(
         )
     
     try:
-        # Create context-aware prompt
+        # Create generic prompt - no business logic exposed
         context_prompt = f"""
-You are a helpful Filipino financial advisor AI assistant for Budget Buddy app users.
+You are a helpful financial assistant AI.
 
 User Profile:
 - Tier: {current_user.tier}
-- Total Savings: ₱{current_user.total_savings:,.2f}
+- Total Savings: ${current_user.total_savings:,.2f}
 
 User Question: {request.message}
 
-Provide helpful, specific advice tailored to Filipino financial context. Keep responses concise and actionable.
+Provide helpful financial advice. Keep responses concise and actionable.
 """
         
         # Call Cohere AI (Primary AI service)
@@ -228,9 +228,9 @@ Provide helpful, specific advice tailored to Filipino financial context. Keep re
         suggestions = []
         
         if current_user.tier == "Bronze Saver":
-            suggestions.append("💡 Reach Gold tier (₱1,000+ savings) to unlock advanced financial insights!")
+            suggestions.append("💡 Save more to unlock advanced features!")
         elif current_user.tier == "Silver Saver":
-            suggestions.append("🎯 Upgrade to Gold tier for unlimited AI recommendations and data export!")
+            suggestions.append("🎯 Upgrade your tier for more features!")
         
         return ChatResponse(
             response=response_text,
@@ -253,13 +253,13 @@ async def ai_insights(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session)
 ):
-    """Advanced AI insights - Gold tier and above"""
+    """Generic AI insights - Premium tier required"""
     
     # Check tier access (Gold+ required)
     if not check_tier_access(current_user.tier, "Gold Saver"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Advanced AI insights require Gold tier or higher. Save ₱1,000+ to unlock this premium feature!"
+            detail="Advanced AI insights require premium tier access!"
         )
     
     # Check usage limits
@@ -268,13 +268,13 @@ async def ai_insights(
         limit = tier_info["limits"]["insights_per_month"]
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Monthly insights limit reached ({limit} insights). Upgrade to Platinum tier for unlimited access!"
+            detail=f"Monthly insights limit reached ({limit} insights). Upgrade for unlimited access!"
         )
     
     try:
-        # Create detailed analysis prompt
+        # Create generic analysis prompt - no business logic exposed
         analysis_prompt = f"""
-As an expert Filipino financial advisor AI, analyze this user's financial data and provide comprehensive insights:
+As a financial advisor AI, analyze this user's data and provide insights:
 
 User Profile:
 - Tier: {current_user.tier}

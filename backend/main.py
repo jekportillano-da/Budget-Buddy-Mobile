@@ -1,8 +1,9 @@
 """
 Budget Buddy Mobile - FastAPI Backend
-Main application entry point
+Main application entry point with production support
 """
 
+import os
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
@@ -19,11 +20,18 @@ from users.routes import router as users_router
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Production environment detection
+IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None or os.getenv("ENVIRONMENT") == "production"
+
 # Database initialization
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("🚀 Starting Budget Buddy Backend...")
+    if IS_PRODUCTION:
+        logger.info("🚀 Starting Budget Buddy Backend (Production Mode)...")
+    else:
+        logger.info("🚀 Starting Budget Buddy Backend (Development Mode)...")
+    
     await init_db()
     logger.info("📊 Database initialized")
     yield
@@ -38,17 +46,42 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
-allowed_origins = config("ALLOWED_ORIGINS", default="").split(",")
-if allowed_origins and allowed_origins[0]:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    logger.info(f"🌐 CORS enabled for origins: {allowed_origins}")
+# CORS middleware - Production configuration
+if IS_PRODUCTION:
+    # Production CORS for React Native and web
+    allowed_origins = [
+        "https://budgetbuddy.app",
+        "https://www.budgetbuddy.app", 
+        "exp://localhost:8081",
+        "http://localhost:3000",
+        "http://localhost:8081",
+        "exp://192.168.1.100:8081"
+    ]
+    
+    # Also allow Railway preview URLs
+    railway_url = os.getenv("RAILWAY_STATIC_URL")
+    if railway_url:
+        allowed_origins.append(f"https://{railway_url}")
+        
+else:
+    # Development CORS
+    allowed_origins = config("ALLOWED_ORIGINS", default="").split(",")
+    if not allowed_origins or not allowed_origins[0]:
+        allowed_origins = [
+            "http://localhost:3000",
+            "http://localhost:8081", 
+            "exp://localhost:8081",
+            "exp://192.168.1.100:8081"
+        ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+logger.info(f"🌐 CORS enabled for origins: {allowed_origins}")
 
 # Security scheme
 security = HTTPBearer()
