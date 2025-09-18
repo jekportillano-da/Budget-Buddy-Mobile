@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../services/supabaseService';
+import { logger } from '../utils/logger';
 
 export interface UserProfile {
   // Personal Information
@@ -67,6 +69,8 @@ interface UserState {
   
   // Sync actions
   syncProfile: () => Promise<void>;
+  loadProfile: (userId: string) => Promise<void>;
+  saveProfile: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -144,8 +148,17 @@ export const useUserStore = create<UserState>()(
             isLoading: false,
           });
 
-          // TODO: Sync with backend
-          console.log('Profile updated:', updatedProfile);
+          // Auto-save to Supabase if sync is enabled
+          const state = get();
+          if (state.settings.syncEnabled) {
+            try {
+              await state.saveProfile();
+              logger.info('[INFO] Profile auto-saved to Supabase');
+            } catch (saveError) {
+              logger.warn('[WARN] Auto-save failed, will retry on next sync', saveError);
+              // Don't throw error here - profile was updated locally successfully
+            }
+          }
           
         } catch (error) {
           set({
@@ -193,23 +206,177 @@ export const useUserStore = create<UserState>()(
         return PHILIPPINES_DATA[location];
       },
 
-      syncProfile: async () => {
+      // Load profile from Supabase for authenticated user
+      loadProfile: async (userId: string) => {
         set({ isLoading: true, error: null });
         
         try {
-          // TODO: Implement actual sync with backend
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+          logger.info('[INFO] Loading user profile from Supabase', { userId });
           
+          // Load user profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+          if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = no rows returned
+            throw profileError;
+          }
+
+          // Load app settings
+          const { data: settingsData, error: settingsError } = await supabase
+            .from('app_settings')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+          if (settingsError && settingsError.code !== 'PGRST116') {
+            throw settingsError;
+          }
+
+          // Convert database format to app format
+          const profile: UserProfile | null = profileData ? {
+            fullName: profileData.full_name,
+            contactNumber: profileData.contact_number || '',
+            email: profileData.email,
+            address: profileData.address || '',
+            location: profileData.location as 'ncr' | 'province',
+            employmentStatus: profileData.employment_status as UserProfile['employmentStatus'],
+            monthlyGrossIncome: Number(profileData.monthly_gross_income) || 0,
+            monthlyNetIncome: Number(profileData.monthly_net_income) || 0,
+            hasSpouse: profileData.has_spouse,
+            spouseIncome: profileData.spouse_income ? Number(profileData.spouse_income) : undefined,
+            numberOfDependents: profileData.number_of_dependents,
+            createdAt: profileData.created_at,
+            updatedAt: profileData.updated_at,
+          } : null;
+
+          const settings: AppSettings = settingsData ? {
+            currency: 'PHP', // Always PHP for our app
+            notifications: settingsData.notifications,
+            syncEnabled: settingsData.sync_enabled,
+            lastSyncDate: settingsData.last_sync_date,
+          } : {
+            currency: 'PHP',
+            notifications: true,
+            syncEnabled: true,
+          };
+
+          const totalHouseholdIncome = (profile?.monthlyNetIncome || 0) + (profile?.spouseIncome || 0);
+
+          set({
+            profile,
+            settings,
+            totalHouseholdIncome,
+            isLoading: false,
+          });
+
+          logger.info('[INFO] Profile loaded successfully from Supabase');
+        } catch (error) {
+          logger.error('[ERROR] Failed to load profile from Supabase', error);
+          set({
+            error: error instanceof Error ? error.message : 'Failed to load profile',
+            isLoading: false,
+          });
+        }
+      },
+
+      // Save current profile to Supabase
+      saveProfile: async () => {
+        const state = get();
+        if (!state.profile) {
+          logger.warn('[WARN] No profile to save');
+          return;
+        }
+
+        set({ isLoading: true, error: null });
+        
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+
+          logger.info('[INFO] Saving profile to Supabase', { userId: user.id });
+
+          // Convert app format to database format
+          const profileData = {
+            id: user.id,
+            full_name: state.profile.fullName,
+            contact_number: state.profile.contactNumber,
+            email: state.profile.email,
+            address: state.profile.address,
+            location: state.profile.location,
+            employment_status: state.profile.employmentStatus,
+            monthly_gross_income: state.profile.monthlyGrossIncome,
+            monthly_net_income: state.profile.monthlyNetIncome,
+            has_spouse: state.profile.hasSpouse,
+            spouse_income: state.profile.spouseIncome,
+            number_of_dependents: state.profile.numberOfDependents,
+          };
+
+          // Upsert profile (insert or update)
+          const { error: profileError } = await supabase
+            .from('user_profiles')
+            .upsert(profileData, { onConflict: 'id' });
+
+          if (profileError) {
+            throw profileError;
+          }
+
+          // Update settings
+          const settingsData = {
+            user_id: user.id,
+            currency: state.settings.currency,
+            notifications: state.settings.notifications,
+            sync_enabled: state.settings.syncEnabled,
+            last_sync_date: new Date().toISOString(),
+          };
+
+          const { error: settingsError } = await supabase
+            .from('app_settings')
+            .upsert(settingsData, { onConflict: 'user_id' });
+
+          if (settingsError) {
+            throw settingsError;
+          }
+
           set({
             isLoading: false,
             settings: {
-              ...get().settings,
-              lastSyncDate: new Date().toISOString(),
+              ...state.settings,
+              lastSyncDate: settingsData.last_sync_date,
             },
           });
+
+          logger.info('[INFO] Profile saved successfully to Supabase');
         } catch (error) {
+          logger.error('[ERROR] Failed to save profile to Supabase', error);
           set({
-            error: 'Failed to sync profile',
+            error: error instanceof Error ? error.message : 'Failed to save profile',
+            isLoading: false,
+          });
+        }
+      },
+
+      syncProfile: async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            logger.warn('[WARN] Cannot sync: User not authenticated');
+            return;
+          }
+
+          // First save current changes, then load fresh data
+          await get().saveProfile();
+          await get().loadProfile(user.id);
+          
+          logger.info('[INFO] Profile sync completed');
+        } catch (error) {
+          logger.error('[ERROR] Profile sync failed', error);
+          set({
+            error: error instanceof Error ? error.message : 'Sync failed',
             isLoading: false,
           });
         }

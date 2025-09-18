@@ -3,30 +3,22 @@
  * Copyright (c) 2024 Budget Buddy Mobile
  * 
  * Enhanced Authentication store - Phase 3 Production Implementation
- * Secure authentication with JWT tokens, backend integration, and session management
+ * Secure authentication with Supabase backend integration and session management
  */
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
+import { supabase } from '../services/supabaseService';
 
 // Configuration
 const AUTH_CONFIG = {
-  // Backend endpoints (update these for your FastAPI backend)
-  BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000',
-  ENDPOINTS: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    REFRESH: '/auth/refresh',
-    VALIDATE: '/auth/validate',
-    LOGOUT: '/auth/logout',
-  },
   // Token configuration
   TOKEN_EXPIRY_BUFFER: 5 * 60 * 1000, // 5 minutes buffer before token expires
   MAX_RETRY_ATTEMPTS: 3,
   // Development mode settings
-  USE_MOCK_AUTH: __DEV__ && !process.env.EXPO_PUBLIC_API_BASE_URL,
+  USE_MOCK_AUTH: false, // Always use Supabase in production
 };
 
 // Secure storage utility
@@ -129,6 +121,7 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
   updateLastActivity: () => void;
   checkTokenExpiry: () => Promise<boolean>;
+  loadUserProfileAfterAuth: (userId: string) => Promise<void>;
 }
 
 // Mock authentication service for development
@@ -207,80 +200,118 @@ class MockAuthService {
   }
 }
 
-// Production API service
-class AuthAPIService {
-  static async makeRequest(endpoint: string, method: string, data?: any) {
-    const url = `${AUTH_CONFIG.BASE_URL}${endpoint}`;
-    
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: data ? JSON.stringify(data) : undefined,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Network error' }));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
-    }
-
-    return response.json();
-  }
-
+// Supabase authentication service
+class SupabaseAuthService {
   static async login(email: string, password: string): Promise<{ user: User; tokens: AuthTokens }> {
-    const response = await this.makeRequest(AUTH_CONFIG.ENDPOINTS.LOGIN, 'POST', {
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    return {
-      user: response.user,
-      tokens: {
-        accessToken: response.access_token,
-        refreshToken: response.refresh_token,
-        expiresAt: response.expires_at,
-      },
+    if (error) {
+      logger.error('Supabase login failed', error);
+      throw new Error(error.message);
+    }
+
+    if (!data.user || !data.session) {
+      throw new Error('Login failed: No user data returned');
+    }
+
+    const user: User = {
+      id: data.user.id,
+      email: data.user.email || email,
+      name: data.user.user_metadata?.full_name || email.split('@')[0],
+      tier: 'Starter', // Default tier, can be updated from profile
+      createdAt: data.user.created_at,
+      emailVerified: data.user.email_confirmed_at !== null,
     };
+
+    const tokens: AuthTokens = {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      expiresAt: data.session.expires_at ? data.session.expires_at * 1000 : Date.now() + (24 * 60 * 60 * 1000),
+    };
+
+    return { user, tokens };
   }
 
   static async register(email: string, password: string, fullName: string): Promise<{ user: User; tokens: AuthTokens }> {
-    const response = await this.makeRequest(AUTH_CONFIG.ENDPOINTS.REGISTER, 'POST', {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      full_name: fullName,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
     });
 
-    return {
-      user: response.user,
-      tokens: {
-        accessToken: response.access_token,
-        refreshToken: response.refresh_token,
-        expiresAt: response.expires_at,
-      },
+    if (error) {
+      logger.error('Supabase registration failed', error);
+      throw new Error(error.message);
+    }
+
+    if (!data.user) {
+      throw new Error('Registration failed: No user data returned');
+    }
+
+    // For email confirmation flow, session might be null
+    const user: User = {
+      id: data.user.id,
+      email: data.user.email || email,
+      name: fullName,
+      tier: 'Starter',
+      createdAt: data.user.created_at,
+      emailVerified: data.user.email_confirmed_at !== null,
     };
+
+    // If session is available (auto-confirm enabled), return tokens
+    // Otherwise, user needs to confirm email first
+    const tokens: AuthTokens = data.session ? {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      expiresAt: data.session.expires_at ? data.session.expires_at * 1000 : Date.now() + (24 * 60 * 60 * 1000),
+    } : {
+      accessToken: '',
+      refreshToken: '',
+      expiresAt: 0,
+    };
+
+    return { user, tokens };
   }
 
   static async refreshToken(refreshToken: string): Promise<AuthTokens> {
-    const response = await this.makeRequest(AUTH_CONFIG.ENDPOINTS.REFRESH, 'POST', {
+    const { data, error } = await supabase.auth.refreshSession({
       refresh_token: refreshToken,
     });
 
+    if (error || !data.session) {
+      logger.error('Supabase token refresh failed', error);
+      throw new Error(error?.message || 'Token refresh failed');
+    }
+
     return {
-      accessToken: response.access_token,
-      refreshToken: response.refresh_token,
-      expiresAt: response.expires_at,
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      expiresAt: data.session.expires_at ? data.session.expires_at * 1000 : Date.now() + (24 * 60 * 60 * 1000),
     };
   }
 
   static async validateToken(token: string): Promise<boolean> {
     try {
-      await this.makeRequest(AUTH_CONFIG.ENDPOINTS.VALIDATE, 'POST', {
-        token,
-      });
-      return true;
-    } catch {
+      const { data, error } = await supabase.auth.getUser(token);
+      return !error && !!data.user;
+    } catch (error) {
+      logger.error('Token validation failed', error);
       return false;
+    }
+  }
+
+  static async logout(): Promise<void> {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      logger.warn('Supabase logout warning', error);
+      // Don't throw error for logout - always succeed locally
     }
   }
 }
@@ -302,7 +333,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true, error: null });
 
-          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : AuthAPIService;
+          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : SupabaseAuthService;
           const { user, tokens } = await authService.login(email, password);
 
           // Store tokens securely
@@ -318,6 +349,14 @@ export const useAuthStore = create<AuthState>()(
           });
 
           logger.debug('Login successful', { userId: user.id, tier: user.tier });
+
+          // Load user profile in background
+          try {
+            await get().loadUserProfileAfterAuth(user.id);
+          } catch (profileError) {
+            // Profile loading failure shouldn't affect login success
+            logger.warn('Profile loading failed after login', profileError);
+          }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';
           set({
@@ -336,7 +375,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true, error: null });
 
-          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : AuthAPIService;
+          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : SupabaseAuthService;
           const { user, tokens } = await authService.register(email, password, fullName);
 
           // Store tokens securely
@@ -352,6 +391,14 @@ export const useAuthStore = create<AuthState>()(
           });
 
           logger.debug('Registration successful', { userId: user.id, tier: user.tier });
+
+          // Load user profile in background (will be empty for new users, but creates the link)
+          try {
+            await get().loadUserProfileAfterAuth(user.id);
+          } catch (profileError) {
+            // Profile loading failure shouldn't affect registration success
+            logger.warn('Profile loading failed after registration', profileError);
+          }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Registration failed';
           set({
@@ -374,17 +421,12 @@ export const useAuthStore = create<AuthState>()(
           await secureStorage.removeItem('access_token');
           await secureStorage.removeItem('refresh_token');
 
-          // In production, call logout endpoint
+          // Call Supabase logout
           if (!AUTH_CONFIG.USE_MOCK_AUTH) {
             try {
-              const tokens = get().tokens;
-              if (tokens) {
-                await AuthAPIService.makeRequest(AUTH_CONFIG.ENDPOINTS.LOGOUT, 'POST', {
-                  refresh_token: tokens.refreshToken,
-                });
-              }
+              await SupabaseAuthService.logout();
             } catch (error) {
-              logger.warn('Logout endpoint failed', { error });
+              logger.warn('Supabase logout failed', { error });
               // Continue with local logout even if server call fails
             }
           }
@@ -416,7 +458,7 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
 
-          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : AuthAPIService;
+          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : SupabaseAuthService;
           const newTokens = await authService.refreshToken(state.tokens.refreshToken);
 
           // Store new tokens securely
@@ -457,7 +499,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // Check token validity
-          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : AuthAPIService;
+          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : SupabaseAuthService;
           const isValid = await authService.validateToken(accessToken);
 
           if (isValid) {
@@ -538,6 +580,19 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
 
       setLoading: (loading: boolean) => set({ isLoading: loading }),
+
+      loadUserProfileAfterAuth: async (userId: string) => {
+        try {
+          // Delay import to avoid circular dependency during store initialization
+          const userStoreModule = require('./userStore');
+          const userStore = userStoreModule.useUserStore.getState();
+          await userStore.loadProfile(userId);
+          logger.debug('User profile loaded after authentication');
+        } catch (error) {
+          logger.warn('Failed to load user profile after authentication', error);
+          // Don't throw - authentication was successful, profile loading is secondary
+        }
+      },
     }),
     {
       name: 'auth-store',
