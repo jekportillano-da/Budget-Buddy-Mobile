@@ -1,4 +1,5 @@
-[phases.setup]
+[phase[start]
+cmd = "cd backend && python -m uvicorn main_simple:app --host 0.0.0.0 --port $PORT"setup]
 nixPkgs = ["nodejs_18", "python3", "python3Packages.pip"]
 
 [phases.install]
