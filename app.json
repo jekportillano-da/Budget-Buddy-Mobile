@@ -35,7 +35,6 @@
     },
     "android": {
       "package": "com.budgetbuddy.mobile",
-      "versionCode": 1,
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -53,8 +52,7 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ],
-      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.budgetbuddy.mobile",
-      "googleServicesFile": "./google-services.json"
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.budgetbuddy.mobile"
     },
     "web": {
       "bundler": "metro",
