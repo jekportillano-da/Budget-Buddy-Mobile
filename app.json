@@ -2,29 +2,36 @@
   "expo": {
     "name": "Budget Buddy",
     "slug": "budget-buddy-mobile",
-    "description": "AI-powered personal finance manager with smart budgeting and insights",
+    "description": "AI-powered personal finance manager with smart budgeting, gamified savings, and intelligent insights. Track expenses, manage bills, and achieve financial goals with personalized recommendations.",
     "version": "1.0.0",
     "sdkVersion": "51.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "auto",
+    "privacy": "public",
+    "primaryColor": "#1e40af",
+    "owner": "jekportillano-da",
+    "githubUrl": "https://github.com/jekportillano-da/Budget-Buddy-Mobile",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#1e40af"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.budgetbuddy.mobile",
       "icon": "./assets/icon.png",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app uses photos for profile pictures and expense receipts",
+        "NSCameraUsageDescription": "This app uses camera to capture expense receipts"
+      },
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "contain",
         "backgroundColor": "#1e40af"
-      }
+      },
+      "appStoreUrl": "https://apps.apple.com/app/budget-buddy/id123456789"
     },
     "android": {
       "package": "com.budgetbuddy.mobile",
@@ -41,13 +48,40 @@
       },
       "permissions": [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
-      ]
+        "ACCESS_NETWORK_STATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.budgetbuddy.mobile",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "scheme": "budget-buddy",
+    "keywords": [
+      "budget",
+      "finance",
+      "money",
+      "savings",
+      "AI",
+      "personal finance",
+      "expense tracker",
+      "budgeting",
+      "financial planning",
+      "Philippines"
+    ],
+    "category": "Finance",
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 10000
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "extra": {
       "eas": {
         "projectId": "e17260ad-76ff-462e-9ec5-b0bc63c25696"
