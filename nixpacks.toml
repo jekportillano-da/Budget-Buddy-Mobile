@@ -5,4 +5,4 @@ nixPkgs = ["nodejs_18", "python3", "python3Packages.pip"]
 cmds = ["npm ci", "cd backend && pip install -r requirements.txt --break-system-packages"]
 
 [start]
-cmd = "cd backend && python3 -m uvicorn main_debug:app --host 0.0.0.0 --port $PORT"
+cmd = "cd backend && python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT"
