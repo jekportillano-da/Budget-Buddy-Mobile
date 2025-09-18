@@ -28,6 +28,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy backend project
 COPY backend/ .
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
     && chown -R appuser:appuser /app
@@ -40,5 +43,5 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:$PORT/health || exit 1
 
-# Run the application
-CMD ["sh", "-c", "python -m uvicorn main:app --host 0.0.0.0 --port $PORT"]
+# Run the application with startup script
+CMD ["./start.sh"]
