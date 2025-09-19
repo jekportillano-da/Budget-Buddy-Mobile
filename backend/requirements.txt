@@ -1,4 +1,4 @@
-# Production Requirements for Railway Deployment
+# Production Requirements for Cloud Deployment
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 sqlalchemy==2.0.36

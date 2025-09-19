@@ -59,10 +59,10 @@ allowed_origins = [
     "https://www.budgetbuddy.app"
 ]
 
-# Add Railway URL if available
-railway_url = os.getenv("RAILWAY_STATIC_URL")
-if railway_url:
-    allowed_origins.append(f"https://{railway_url}")
+# Add deployment URL if available
+deployment_url = os.getenv("DEPLOYMENT_URL")
+if deployment_url:
+    allowed_origins.append(f"https://{deployment_url}")
 
 app.add_middleware(
     CORSMiddleware,
