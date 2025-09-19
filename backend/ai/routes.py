@@ -1,5 +1,6 @@
 """
-Generic AI proxy service - Standard implementation
+AI-Powered Financial Intelligence Service
+Advanced business logic with Philippine market specialization
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,7 +26,7 @@ from .models import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# Generic API configuration
+# AI Service Configuration - Philippine Financial Intelligence
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 COHERE_API_URL = config("COHERE_API_URL", default="https://api.cohere.ai/v1")
 GROK_API_KEY = config("GROK_API_KEY", default="")
@@ -203,17 +204,37 @@ async def ai_chat(
         )
     
     try:
-        # Create generic prompt - no business logic exposed
+        # Create intelligent Philippine-focused financial prompt
         context_prompt = f"""
-You are a helpful financial assistant AI.
+You are Budget Buddy AI, a specialized financial intelligence assistant designed for Filipino users.
 
-User Profile:
-- Tier: {current_user.tier}
-- Total Savings: ${current_user.total_savings:,.2f}
+CONTEXT: Philippine Financial Landscape
+- Currency: Philippine Peso (₱)
+- Economic factors: Inflation, OFW remittances, local market conditions
+- Common savings goals: Emergency funds, education, family support, retirement
+- Cultural considerations: Family financial obligations, local investment options
+
+USER PROFILE:
+- Tier: {current_user.tier} (determines advanced features)
+- Total Savings: ₱{current_user.total_savings:,.2f}
+- Member since: Registration date
+- Geographic context: Philippines
+
+ADVANCED CAPABILITIES:
+- Smart category detection for Filipino expenses
+- Local market price awareness
+- Peso-based budgeting strategies  
+- Philippine investment recommendations
+- Cultural context financial advice
 
 User Question: {request.message}
 
-Provide helpful financial advice. Keep responses concise and actionable.
+INSTRUCTIONS:
+- Provide Philippines-specific financial advice
+- Use Philippine Peso (₱) for all amounts
+- Consider local economic factors
+- Suggest actionable, culturally-relevant strategies
+- Leverage your knowledge of Philippine financial products and services
 """
         
         # Call Cohere AI (Primary AI service)
@@ -253,7 +274,7 @@ async def ai_insights(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session)
 ):
-    """Generic AI insights - Premium tier required"""
+    """Advanced AI-powered financial insights with Philippine market intelligence - Premium tier required"""
     
     # Check tier access (Gold+ required)
     if not check_tier_access(current_user.tier, "Gold Saver"):
@@ -272,21 +293,42 @@ async def ai_insights(
         )
     
     try:
-        # Create generic analysis prompt - no business logic exposed
+        # Create comprehensive Philippine financial intelligence analysis
         analysis_prompt = f"""
-As a financial advisor AI, analyze this user's data and provide insights:
+You are Budget Buddy's Advanced Financial Intelligence Engine, specifically designed for Philippine financial analysis.
 
-User Profile:
-- Tier: {current_user.tier}
+ADVANCED USER FINANCIAL PROFILE:
+- Premium Tier: {current_user.tier}
 - Total Savings: ₱{current_user.total_savings:,.2f}
 - Monthly Income: ₱{request.monthly_income:,.2f}
 - Monthly Expenses: ₱{request.monthly_expenses:,.2f}
 - Expense Categories: {request.expense_categories}
 
-Provide a detailed financial analysis in JSON format with:
-1. Financial health score (0-100)
-2. Key strengths and areas for improvement
-3. Specific actionable recommendations
+PHILIPPINE MARKET INTELLIGENCE CONTEXT:
+- Current BSP interest rates and inflation
+- Local investment opportunities (PSE, bonds, etc.)
+- OFW remittance patterns
+- Regional cost of living factors
+- Cultural spending priorities
+- Local financial products and services
+
+ADVANCED ANALYSIS CAPABILITIES:
+1. Multi-dimensional financial health assessment
+2. Philippine-specific investment recommendations  
+3. Cultural context spending optimization
+4. Regional market opportunity analysis
+5. Peso-based wealth building strategies
+6. Local economic factor integration
+
+COMPREHENSIVE FINANCIAL INTELLIGENCE REPORT:
+Provide detailed analysis in JSON format with:
+1. Financial health score (0-100) with Philippine benchmarks
+2. Strength areas with cultural context
+3. Improvement opportunities specific to Philippine market
+4. Actionable recommendations with local financial products
+5. Investment suggestions appropriate for Philippine investors
+6. Risk assessment considering local economic factors
+7. Goal-setting framework with Philippine financial milestones
 4. Philippines-specific context (inflation, cost of living, etc.)
 5. Savings optimization strategies
 6. Investment suggestions appropriate for the Philippines market

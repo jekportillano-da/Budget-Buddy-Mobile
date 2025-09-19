@@ -42,8 +42,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Budget Buddy Mobile API",
-    description="Secure backend for Budget Buddy Mobile app with authentication and AI services",
+    title="Budget Buddy - AI-Powered Financial Intelligence",
+    description="Advanced personal finance management platform with AI-driven insights, Philippine market specialization, and intelligent budgeting for Filipino users. Features multi-tier access, smart expense categorization, and culturally-aware financial recommendations.",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -83,16 +83,28 @@ app.include_router(users_router, prefix="/user", tags=["User Management"])
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
+    """API Information and Features"""
     return {
-        "message": "Budget Buddy Mobile API",
+        "message": "Budget Buddy - AI-Powered Financial Intelligence Platform",
         "version": "1.0.0",
-        "status": "healthy",
-        "features": [
-            "JWT Authentication",
-            "AI Services Proxy",
-            "User Management",
-            "Tier-based Access Control"
+        "status": "operational",
+        "market_focus": "Philippine Financial Services",
+        "key_features": [
+            "AI-Powered Financial Analysis",
+            "Philippine Market Intelligence", 
+            "Multi-Tier Premium Access",
+            "Smart Expense Categorization",
+            "Cultural Context Financial Advice",
+            "Peso-Optimized Budgeting",
+            "Local Investment Recommendations",
+            "Advanced Financial Health Scoring"
+        ],
+        "competitive_advantages": [
+            "Philippine-specific AI prompts",
+            "Local market data integration", 
+            "Cultural spending pattern analysis",
+            "OFW remittance optimization",
+            "Regional cost-of-living intelligence"
         ]
     }
 
