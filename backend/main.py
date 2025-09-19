@@ -52,9 +52,12 @@ if IS_PRODUCTION:
     allowed_origins = [
         "https://budgetbuddy.app",
         "https://www.budgetbuddy.app", 
+        "exp://localhost:8080",
         "exp://localhost:8081",
         "http://localhost:3000",
+        "http://localhost:8080",
         "http://localhost:8081",
+        "exp://192.168.1.100:8080",
         "exp://192.168.1.100:8081"
     ]
     
@@ -69,8 +72,11 @@ else:
     if not allowed_origins or not allowed_origins[0]:
         allowed_origins = [
             "http://localhost:3000",
+            "http://localhost:8080",
             "http://localhost:8081", 
+            "exp://localhost:8080",
             "exp://localhost:8081",
+            "exp://192.168.1.100:8080",
             "exp://192.168.1.100:8081"
         ]
 
