@@ -124,16 +124,3 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unhealthy")
-
-if __name__ == "__main__":
-    import uvicorn
-    
-    port = config("PORT", default=8000, cast=int)
-    host = config("HOST", default="0.0.0.0")
-    
-    uvicorn.run(
-        "main:app",
-        host=host,
-        port=port,
-        reload=config("DEBUG", default=False, cast=bool)
-    )
