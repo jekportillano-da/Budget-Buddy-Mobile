@@ -80,8 +80,9 @@ async def init_db():
     """Initialize database and create tables"""
     try:
         # Test database connection first
+        from sqlalchemy import text
         test_session = SessionLocal()
-        test_session.execute("SELECT 1")
+        test_session.execute(text("SELECT 1"))
         test_session.close()
         print("✅ Database connection successful")
         
