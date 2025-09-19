@@ -3,7 +3,7 @@
     "name": "Budget Buddy",
     "slug": "budget-buddy-mobile",
     "description": "AI-powered personal finance manager with smart budgeting, gamified savings, and intelligent insights. Track expenses, manage bills, and achieve financial goals with personalized recommendations.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "sdkVersion": "51.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "auto",
@@ -21,7 +21,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.budgetbuddy.mobile",
       "icon": "./assets/icon.png",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app uses photos for profile pictures and expense receipts",
         "NSCameraUsageDescription": "This app uses camera to capture expense receipts"

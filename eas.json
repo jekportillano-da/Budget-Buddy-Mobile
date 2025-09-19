@@ -23,9 +23,13 @@
       "env": {
         "NODE_ENV": "production",
         "EXPO_NO_CAPABILITY_SYNC": "1",
-        "COHERE_API_KEY": "REPLACE_WITH_YOUR_ACTUAL_COHERE_API_KEY",
-        "EXPO_PUBLIC_SUPABASE_URL": "REPLACE_WITH_YOUR_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "REPLACE_WITH_YOUR_SUPABASE_ANON_KEY"
+        "EXPO_PUBLIC_BACKEND_URL": "https://budget-buddy-mobile.onrender.com",
+        "EXPO_PUBLIC_API_MODE": "backend",
+        "EXPO_PUBLIC_USE_BACKEND_AUTH": "true",
+        "EXPO_PUBLIC_USE_BACKEND_AI": "true",
+        "EXPO_PUBLIC_ENABLE_FALLBACK": "true",
+        "EXPO_PUBLIC_BACKEND_TIMEOUT": "10000",
+        "EXPO_PUBLIC_HEALTH_CHECK_INTERVAL": "30000"
       }
     },
     "production": {
@@ -50,6 +54,25 @@
       "android": {
         "gradleCommand": ":app:assembleRelease",
         "buildType": "apk"
+      }
+    },
+    "testing": {
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleRelease",
+        "buildType": "apk",
+        "versionCode": "auto"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_NO_CAPABILITY_SYNC": "1",
+        "EXPO_PUBLIC_BACKEND_URL": "https://budget-buddy-mobile.onrender.com",
+        "EXPO_PUBLIC_API_MODE": "backend",
+        "EXPO_PUBLIC_USE_BACKEND_AUTH": "true",
+        "EXPO_PUBLIC_USE_BACKEND_AI": "true",
+        "EXPO_PUBLIC_ENABLE_FALLBACK": "true",
+        "EXPO_PUBLIC_BACKEND_TIMEOUT": "10000",
+        "EXPO_PUBLIC_HEALTH_CHECK_INTERVAL": "30000"
       }
     }
   },
