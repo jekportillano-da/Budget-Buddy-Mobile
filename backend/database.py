@@ -9,14 +9,30 @@ from sqlalchemy.sql import func
 from decouple import config
 import asyncio
 
-# Database URL
+# Database URL - Use direct connection (port 5432) to bypass pooling conflicts
 DATABASE_URL = config("DATABASE_URL", default="sqlite:///./budget_buddy.db")
 
-# Create engine
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
-)
+# If using Supabase, force direct connection to avoid SASL auth conflicts
+if "supabase" in DATABASE_URL:
+    # Replace transaction pooler port 6543 with direct connection port 5432
+    DATABASE_URL = DATABASE_URL.replace(":6543/", ":5432/")
+
+# Create engine with optimized pooling for Supabase
+if "postgresql" in DATABASE_URL:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=5,          # Smaller pool to reduce conflicts
+        max_overflow=10,      # Limited overflow
+        pool_timeout=30,      # Reasonable timeout
+        pool_recycle=3600,    # Recycle connections hourly
+        pool_pre_ping=True    # Verify connections before use
+    )
+else:
+    # SQLite configuration
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
