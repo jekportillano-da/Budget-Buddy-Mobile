@@ -60,8 +60,7 @@
       "distribution": "internal",
       "android": {
         "gradleCommand": ":app:assembleRelease",
-        "buildType": "apk",
-        "versionCode": "auto"
+        "buildType": "apk"
       },
       "env": {
         "NODE_ENV": "production",
