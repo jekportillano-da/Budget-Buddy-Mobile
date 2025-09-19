@@ -40,6 +40,11 @@ async def lifespan(app: FastAPI):
         # Don't raise the exception to allow the app to start without DB
         logger.warning("⚠️ Continuing without database initialization")
     
+    # Add a small delay to ensure everything is ready
+    import asyncio
+    await asyncio.sleep(1)
+    logger.info("🚀 FastAPI application ready to accept connections")
+    
     yield
     # Shutdown
     logger.info("🛑 Shutting down Budget Buddy Backend...")
