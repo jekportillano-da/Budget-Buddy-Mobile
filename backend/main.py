@@ -32,8 +32,14 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("🚀 Starting Budget Buddy Backend (Development Mode)...")
     
-    await init_db()
-    logger.info("📊 Database initialized")
+    try:
+        await init_db()
+        logger.info("✅ Database initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+        # Don't raise the exception to allow the app to start without DB
+        logger.warning("⚠️ Continuing without database initialization")
+    
     yield
     # Shutdown
     logger.info("🛑 Shutting down Budget Buddy Backend...")

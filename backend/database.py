@@ -79,11 +79,18 @@ class APIUsage(Base):
 async def init_db():
     """Initialize database and create tables"""
     try:
+        # Test database connection first
+        test_session = SessionLocal()
+        test_session.execute("SELECT 1")
+        test_session.close()
+        print("✅ Database connection successful")
+        
         # Create all tables
         Base.metadata.create_all(bind=engine)
         print("✅ Database tables created successfully")
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
+        print(f"DATABASE_URL: {DATABASE_URL}")
         raise
 
 # Dependency to get database session
