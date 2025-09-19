@@ -18,9 +18,3 @@ alembic==1.13.0
 
 # Production server
 gunicorn==21.2.0
-# For gunicorn uvicorn workers
-uvicorn[standard]==0.32.1
-
-# Development/Testing (optional in production)
-pytest==7.4.3
-pytest-asyncio==0.21.1

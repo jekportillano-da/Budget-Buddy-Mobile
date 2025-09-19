@@ -20,17 +20,11 @@ from users.routes import router as users_router
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Production environment detection
-IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None or os.getenv("ENVIRONMENT") == "production"
-
 # Database initialization
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    if IS_PRODUCTION:
-        logger.info("🚀 Starting Budget Buddy Backend (Production Mode)...")
-    else:
-        logger.info("🚀 Starting Budget Buddy Backend (Development Mode)...")
+    logger.info("🚀 Starting Budget Buddy Backend...")
     
     try:
         await init_db()
@@ -40,10 +34,7 @@ async def lifespan(app: FastAPI):
         # Don't raise the exception to allow the app to start without DB
         logger.warning("⚠️ Continuing without database initialization")
     
-    # Add a small delay to ensure everything is ready
-    import asyncio
-    await asyncio.sleep(1)
-    logger.info("🚀 FastAPI application ready to accept connections")
+    logger.info("🚀 FastAPI application ready")
     
     yield
     # Shutdown
@@ -57,39 +48,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware - Production configuration
-if IS_PRODUCTION:
-    # Production CORS for React Native and web
-    allowed_origins = [
-        "https://budgetbuddy.app",
-        "https://www.budgetbuddy.app", 
-        "exp://localhost:8080",
-        "exp://localhost:8081",
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "exp://192.168.1.100:8080",
-        "exp://192.168.1.100:8081"
-    ]
-    
-    # Also allow Railway preview URLs
-    railway_url = os.getenv("RAILWAY_STATIC_URL")
-    if railway_url:
-        allowed_origins.append(f"https://{railway_url}")
-        
-else:
-    # Development CORS
-    allowed_origins = config("ALLOWED_ORIGINS", default="").split(",")
-    if not allowed_origins or not allowed_origins[0]:
-        allowed_origins = [
-            "http://localhost:3000",
-            "http://localhost:8080",
-            "http://localhost:8081", 
-            "exp://localhost:8080",
-            "exp://localhost:8081",
-            "exp://192.168.1.100:8080",
-            "exp://192.168.1.100:8081"
-        ]
+# CORS middleware - Allow common development and production origins
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:8080", 
+    "http://localhost:8081",
+    "exp://localhost:8080",
+    "exp://localhost:8081",
+    "https://budgetbuddy.app",
+    "https://www.budgetbuddy.app"
+]
+
+# Add Railway URL if available
+railway_url = os.getenv("RAILWAY_STATIC_URL")
+if railway_url:
+    allowed_origins.append(f"https://{railway_url}")
 
 app.add_middleware(
     CORSMiddleware,
