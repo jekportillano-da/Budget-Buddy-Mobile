@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import logging
 
-from database import get_db_session, UserCRUD, RefreshTokenCRUD, PasswordResetTokenCRUD
+from database import get_db_session, UserCRUD, RefreshTokenCRUD, PasswordResetTokenCRUD, PasswordResetToken
 from .models import (
     UserRegisterRequest, 
     UserLoginRequest, 
@@ -358,4 +358,42 @@ async def reset_password(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to reset password"
+        )
+
+@router.get("/debug/reset-tokens/{email}")
+async def get_reset_tokens_for_email(
+    email: str,
+    db: Session = Depends(get_db_session)
+):
+    """Debug endpoint to get reset tokens for an email (remove in production)"""
+    try:
+        user_crud = UserCRUD(db)
+        user = user_crud.get_user_by_email(email)
+        
+        if not user:
+            return {"tokens": []}
+        
+        reset_crud = PasswordResetTokenCRUD(db)
+        # Get all unused tokens for this user
+        tokens = db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.is_used == False
+        ).all()
+        
+        return {
+            "tokens": [
+                {
+                    "token": token.token,
+                    "expires_at": token.expires_at.isoformat(),
+                    "created_at": token.created_at.isoformat()
+                }
+                for token in tokens
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Debug reset tokens failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to get reset tokens"
         )
