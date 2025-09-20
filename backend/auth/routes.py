@@ -8,25 +8,29 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import logging
 
-from database import get_db_session, UserCRUD, RefreshTokenCRUD
+from database import get_db_session, UserCRUD, RefreshTokenCRUD, PasswordResetTokenCRUD
 from .models import (
     UserRegisterRequest, 
     UserLoginRequest, 
     RefreshTokenRequest,
     ValidateTokenRequest,
     LogoutRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
     TokenResponse, 
     RefreshResponse,
     ValidationResponse,
     UserResponse,
     TierInfoResponse,
-    ErrorResponse
+    ErrorResponse,
+    MessageResponse
 )
 from .utils import (
     verify_password, 
     hash_password, 
     create_access_token, 
     create_refresh_token,
+    create_password_reset_token,
     verify_token,
     get_user_id_from_token,
     get_tier_features,
@@ -269,3 +273,89 @@ async def get_user_tier_info(current_user = Depends(get_current_user)):
     """Get user's tier information and available features"""
     tier_info = get_tier_features(current_user.tier)
     return TierInfoResponse(**tier_info)
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db_session)
+):
+    """Send password reset email to user"""
+    try:
+        user_crud = UserCRUD(db)
+        user = user_crud.get_user_by_email(request.email)
+        
+        # Always return success for security (don't reveal if email exists)
+        if user:
+            # Create password reset token
+            reset_token = create_password_reset_token()
+            expires_at = datetime.utcnow() + timedelta(hours=1)  # 1 hour expiry
+            
+            # Store token in database
+            reset_crud = PasswordResetTokenCRUD(db)
+            reset_crud.create_reset_token(user.id, reset_token, expires_at)
+            
+            # In a real implementation, you would send an email here
+            # For now, we'll just log the token for testing
+            logger.info(f"Password reset token for {request.email}: {reset_token}")
+            
+            # TODO: Implement email service to send reset link
+            # email_service.send_password_reset_email(user.email, reset_token)
+        
+        return MessageResponse(message="If an account with that email exists, you will receive a password reset link.")
+        
+    except Exception as e:
+        logger.error(f"Forgot password failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to process password reset request"
+        )
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db_session)
+):
+    """Reset user password using reset token"""
+    try:
+        reset_crud = PasswordResetTokenCRUD(db)
+        reset_token_record = reset_crud.get_reset_token(request.token)
+        
+        if not reset_token_record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+        
+        # Get user and update password
+        user_crud = UserCRUD(db)
+        user = user_crud.get_user_by_id(reset_token_record.user_id)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User not found"
+            )
+        
+        # Hash new password and update
+        hashed_password = hash_password(request.new_password)
+        user_crud.update_user_password(user.id, hashed_password)
+        
+        # Mark reset token as used
+        reset_crud.use_reset_token(request.token)
+        
+        # Revoke all refresh tokens for security
+        refresh_crud = RefreshTokenCRUD(db)
+        refresh_crud.revoke_all_user_tokens(user.id)
+        
+        logger.info(f"Password reset successful for user {user.email}")
+        
+        return MessageResponse(message="Password has been reset successfully")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Password reset failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to reset password"
+        )

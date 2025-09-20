@@ -12,8 +12,7 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 // Validation
 if (!supabaseUrl || !supabaseAnonKey) {
-  logger.error('Missing Supabase environment variables');
-  throw new Error('EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY must be set');
+  throw new Error('Missing Supabase environment variables. Please check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY');
 }
 
 // Create Supabase client
@@ -34,6 +33,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'X-Client-Info': 'budget-buddy-mobile/1.0.0',
     },
   },
+});
+
+logger.info('Supabase client initialized successfully', { 
+  url: supabaseUrl,
+  hasAnonKey: !!supabaseAnonKey 
 });
 
 // Authentication helpers

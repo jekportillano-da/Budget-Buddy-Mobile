@@ -11,6 +11,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 import { supabase } from '../services/supabaseService';
+import BackendAuthService from '../services/backendAuthService';
 
 // Configuration
 const AUTH_CONFIG = {
@@ -18,7 +19,8 @@ const AUTH_CONFIG = {
   TOKEN_EXPIRY_BUFFER: 5 * 60 * 1000, // 5 minutes buffer before token expires
   MAX_RETRY_ATTEMPTS: 3,
   // Development mode settings
-  USE_MOCK_AUTH: false, // Always use Supabase in production
+  USE_MOCK_AUTH: false, // Always use real auth services
+  USE_BACKEND_AUTH: process.env.EXPO_PUBLIC_USE_BACKEND_AUTH === 'true',
 };
 
 // Secure storage utility
@@ -316,6 +318,69 @@ class SupabaseAuthService {
   }
 }
 
+// Backend API authentication service adapter
+class BackendAuthServiceAdapter {
+  private backendService = new BackendAuthService();
+
+  async login(email: string, password: string): Promise<{ user: User; tokens: AuthTokens }> {
+    const result = await this.backendService.login(email, password);
+    
+    // Convert backend response to auth store format
+    const user: User = {
+      id: result.user.id,
+      email: result.user.email,
+      name: result.user.name,
+      tier: result.user.tier,
+      createdAt: result.user.createdAt,
+      emailVerified: result.user.emailVerified,
+    };
+
+    const tokens: AuthTokens = {
+      accessToken: result.tokens.accessToken,
+      refreshToken: result.tokens.refreshToken,
+      expiresAt: result.tokens.expiresAt,
+    };
+
+    return { user, tokens };
+  }
+
+  async register(email: string, password: string, fullName: string): Promise<{ user: User; tokens: AuthTokens }> {
+    const result = await this.backendService.register(email, password, fullName);
+    
+    // Convert backend response to auth store format
+    const user: User = {
+      id: result.user.id,
+      email: result.user.email,
+      name: result.user.name,
+      tier: result.user.tier,
+      createdAt: result.user.createdAt,
+      emailVerified: result.user.emailVerified,
+    };
+
+    const tokens: AuthTokens = {
+      accessToken: result.tokens.accessToken,
+      refreshToken: result.tokens.refreshToken,
+      expiresAt: result.tokens.expiresAt,
+    };
+
+    return { user, tokens };
+  }
+
+  async logout(): Promise<void> {
+    return this.backendService.logout();
+  }
+
+  async validateToken(token: string): Promise<boolean> {
+    return this.backendService.validateToken(token);
+  }
+
+  async refreshToken(refreshToken: string): Promise<AuthTokens> {
+    // Backend refresh token implementation would go here
+    // For now, throw error to force re-login
+    throw new Error('Token refresh not implemented for backend auth');
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -333,7 +398,22 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true, error: null });
 
-          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : SupabaseAuthService;
+          // Select auth service based on configuration
+          let authService;
+          if (AUTH_CONFIG.USE_MOCK_AUTH) {
+            authService = MockAuthService;
+          } else if (AUTH_CONFIG.USE_BACKEND_AUTH) {
+            authService = new BackendAuthServiceAdapter();
+          } else {
+            authService = SupabaseAuthService;
+          }
+
+          logger.info('Using auth service', { 
+            useMock: AUTH_CONFIG.USE_MOCK_AUTH,
+            useBackend: AUTH_CONFIG.USE_BACKEND_AUTH,
+            serviceType: AUTH_CONFIG.USE_BACKEND_AUTH ? 'backend' : 'supabase'
+          });
+
           const { user, tokens } = await authService.login(email, password);
 
           // Store tokens securely
@@ -375,7 +455,22 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true, error: null });
 
-          const authService = AUTH_CONFIG.USE_MOCK_AUTH ? MockAuthService : SupabaseAuthService;
+          // Select auth service based on configuration
+          let authService;
+          if (AUTH_CONFIG.USE_MOCK_AUTH) {
+            authService = MockAuthService;
+          } else if (AUTH_CONFIG.USE_BACKEND_AUTH) {
+            authService = new BackendAuthServiceAdapter();
+          } else {
+            authService = SupabaseAuthService;
+          }
+
+          logger.info('Using auth service for registration', { 
+            useMock: AUTH_CONFIG.USE_MOCK_AUTH,
+            useBackend: AUTH_CONFIG.USE_BACKEND_AUTH,
+            serviceType: AUTH_CONFIG.USE_BACKEND_AUTH ? 'backend' : 'supabase'
+          });
+
           const { user, tokens } = await authService.register(email, password, fullName);
 
           // Store tokens securely

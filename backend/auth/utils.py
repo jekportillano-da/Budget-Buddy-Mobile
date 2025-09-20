@@ -43,6 +43,10 @@ def create_refresh_token() -> str:
     """Create a secure refresh token"""
     return secrets.token_urlsafe(32)
 
+def create_password_reset_token() -> str:
+    """Create a secure password reset token"""
+    return secrets.token_urlsafe(32)
+
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
     """Verify and decode a JWT token"""
     try:

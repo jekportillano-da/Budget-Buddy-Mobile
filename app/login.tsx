@@ -9,13 +9,16 @@ import AnimatedContainer from '../components/AnimatedContainer';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [fullName, setFullName] = useState('');
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
 
   const { login, register, isLoading, error, clearError } = useAuthStore();
 
   const handleSubmit = async () => {
     clearError();
+    setPasswordMismatch(false);
     
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email');
@@ -27,9 +30,27 @@ export default function LoginScreen() {
       return;
     }
 
-    if (mode === 'register' && !fullName.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
+    }
+
+    if (mode === 'register') {
+      if (!fullName.trim()) {
+        Alert.alert('Error', 'Please enter your full name');
+        return;
+      }
+
+      if (!confirmPassword.trim()) {
+        Alert.alert('Error', 'Please confirm your password');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setPasswordMismatch(true);
+        Alert.alert('Error', 'Passwords do not match');
+        return;
+      }
     }
 
     try {
@@ -89,10 +110,34 @@ export default function LoginScreen() {
           style={styles.input}
           placeholder="Password (min 6 characters)"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            setPasswordMismatch(false);
+          }}
           secureTextEntry
           autoCapitalize="none"
         />
+        
+        {mode === 'register' && (
+          <TextInput
+            style={[
+              styles.input,
+              passwordMismatch && styles.inputError
+            ]}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              setPasswordMismatch(false);
+            }}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+        )}
+        
+        {passwordMismatch && (
+          <Text style={styles.errorText}>Passwords do not match</Text>
+        )}
         
         {error && (
           <Text style={styles.errorText}>{error}</Text>
@@ -126,6 +171,16 @@ export default function LoginScreen() {
           disabled={isLoading}
           style={styles.animatedButton}
         />
+        
+        {mode === 'login' && (
+          <TouchableOpacity
+            onPress={() => router.push('/forgot-password')}
+            disabled={isLoading}
+            style={styles.forgotPasswordContainer}
+          >
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        )}
         
         <AnimatedButtonSimple
           onPress={handleGoBack}
@@ -163,6 +218,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     backgroundColor: 'white',
     fontSize: 16,
+  },
+  inputError: {
+    borderColor: '#ef4444',
+    borderWidth: 2,
   },
   button: {
     width: '100%',
@@ -217,5 +276,14 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     width: '100%',
     alignItems: 'center',
+  },
+  forgotPasswordContainer: {
+    marginVertical: 10,
+    paddingVertical: 5,
+  },
+  forgotPasswordText: {
+    color: '#2196F3',
+    fontSize: 16,
+    textDecorationLine: 'underline',
   },
 });

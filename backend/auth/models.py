@@ -25,6 +25,13 @@ class ValidateTokenRequest(BaseModel):
 class LogoutRequest(BaseModel):
     refresh_token: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6, description="Password must be at least 6 characters")
+
 # Response models
 class UserResponse(BaseModel):
     id: int
@@ -67,3 +74,6 @@ class TierInfoResponse(BaseModel):
 class ErrorResponse(BaseModel):
     detail: str
     error_code: Optional[str] = None
+
+class MessageResponse(BaseModel):
+    message: str

@@ -67,6 +67,17 @@ class RefreshToken(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_revoked = Column(Boolean, default=False)
 
+# Password reset token model
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    token = Column(String(255), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_used = Column(Boolean, default=False)
+
 # User preferences model (for tier-based features)
 class UserPreference(Base):
     __tablename__ = "user_preferences"
@@ -155,6 +166,13 @@ class UserCRUD:
             user.total_savings = total_savings
             self.db.commit()
         return user
+    
+    def update_user_password(self, user_id: int, hashed_password: str):
+        user = self.get_user_by_id(user_id)
+        if user:
+            user.hashed_password = hashed_password
+            self.db.commit()
+        return user
 
 # Refresh token CRUD operations
 class RefreshTokenCRUD:
@@ -190,3 +208,39 @@ class RefreshTokenCRUD:
             RefreshToken.is_revoked == False
         ).update({"is_revoked": True})
         self.db.commit()
+
+# Password reset token CRUD operations
+class PasswordResetTokenCRUD:
+    def __init__(self, db: Session):
+        self.db = db
+    
+    def create_reset_token(self, user_id: int, token: str, expires_at):
+        # Invalidate any existing reset tokens for this user
+        self.db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user_id,
+            PasswordResetToken.is_used == False
+        ).update({"is_used": True})
+        
+        reset_token = PasswordResetToken(
+            user_id=user_id,
+            token=token,
+            expires_at=expires_at
+        )
+        self.db.add(reset_token)
+        self.db.commit()
+        return reset_token
+    
+    def get_reset_token(self, token: str):
+        from datetime import datetime
+        return self.db.query(PasswordResetToken).filter(
+            PasswordResetToken.token == token,
+            PasswordResetToken.is_used == False,
+            PasswordResetToken.expires_at > datetime.utcnow()
+        ).first()
+    
+    def use_reset_token(self, token: str):
+        reset_token = self.get_reset_token(token)
+        if reset_token:
+            reset_token.is_used = True
+            self.db.commit()
+        return reset_token
