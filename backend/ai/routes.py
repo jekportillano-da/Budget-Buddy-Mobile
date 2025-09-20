@@ -28,26 +28,11 @@ logger = logging.getLogger(__name__)
 
 # AI Service Configuration - Philippine Financial Intelligence
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
-COHERE_API_URL = config("COHERE_API_URL", default="https://api.cohere.ai/v1")
+COHERE_API_URL = config("COHERE_API_URL", default="https://api.cohere.ai/v2")  # Updated to v2 API
 GROK_API_KEY = config("GROK_API_KEY", default="")
 GROK_API_URL = config("GROK_API_URL", default="https://api.x.ai/v1")
 CLAUDE_API_KEY = config("CLAUDE_API_KEY", default="")
 CLAUDE_API_URL = config("CLAUDE_API_URL", default="https://api.anthropic.com/v1")
-
-@router.get("/debug/config")
-async def debug_config():
-    """Debug endpoint to check AI service configuration"""
-    return {
-        "cohere_configured": bool(COHERE_API_KEY and len(COHERE_API_KEY) > 10),
-        "cohere_key_length": len(COHERE_API_KEY) if COHERE_API_KEY else 0,
-        "grok_configured": bool(GROK_API_KEY and len(GROK_API_KEY) > 10),
-        "claude_configured": bool(CLAUDE_API_KEY and len(CLAUDE_API_KEY) > 10),
-        "apis_available": {
-            "cohere": COHERE_API_URL,
-            "grok": GROK_API_URL,
-            "claude": CLAUDE_API_URL
-        }
-    }
 
 async def check_usage_limits(
     user: User,
@@ -134,7 +119,11 @@ async def call_cohere_api(prompt: str, model: str = "command-r-08-2024") -> dict
                     detail="AI service temporarily unavailable"
                 )
             
-            return response.json()
+            result = response.json()
+            # Parse Cohere v2 API response format: result.message.content[0].text
+            ai_text = result.get("message", {}).get("content", [{}])[0].get("text", "")
+            
+            return {"response": ai_text}
             
     except httpx.TimeoutException:
         raise HTTPException(
@@ -249,7 +238,7 @@ INSTRUCTIONS:
         
         # Call Cohere AI (Primary AI service)
         ai_response = await call_cohere_api(context_prompt)
-        response_text = ai_response["message"]["content"]["text"]
+        response_text = ai_response["response"]  # Updated to match new format
         
         # Record usage
         await record_api_usage(current_user, "chat", db)
