@@ -34,6 +34,21 @@ GROK_API_URL = config("GROK_API_URL", default="https://api.x.ai/v1")
 CLAUDE_API_KEY = config("CLAUDE_API_KEY", default="")
 CLAUDE_API_URL = config("CLAUDE_API_URL", default="https://api.anthropic.com/v1")
 
+@router.get("/debug/config")
+async def debug_config():
+    """Debug endpoint to check AI service configuration"""
+    return {
+        "cohere_configured": bool(COHERE_API_KEY and len(COHERE_API_KEY) > 10),
+        "cohere_key_length": len(COHERE_API_KEY) if COHERE_API_KEY else 0,
+        "grok_configured": bool(GROK_API_KEY and len(GROK_API_KEY) > 10),
+        "claude_configured": bool(CLAUDE_API_KEY and len(CLAUDE_API_KEY) > 10),
+        "apis_available": {
+            "cohere": COHERE_API_URL,
+            "grok": GROK_API_URL,
+            "claude": CLAUDE_API_URL
+        }
+    }
+
 async def check_usage_limits(
     user: User,
     endpoint: str,

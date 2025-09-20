@@ -22,12 +22,13 @@ class CohereAIService {
     // Priority order: Environment variable, then fallback
     this.apiKey = 
       process.env.COHERE_API_KEY || 
+      process.env.EXPO_PUBLIC_COHERE_API_KEY ||
       'PLEASE_SET_YOUR_COHERE_API_KEY';
     
     // Debug logging to verify API key loading (hide in production)
     if (__DEV__) {
       logger.debug('Environment variables check', {
-        hasCohereApiKey: !!process.env.COHERE_API_KEY,
+        hasCohereApiKey: !!(process.env.COHERE_API_KEY || process.env.EXPO_PUBLIC_COHERE_API_KEY),
         apiKeyLength: this.apiKey.length,
         isConfigured: this.isConfigured()
       });
@@ -37,7 +38,7 @@ class CohereAIService {
       logger.warn('🚨 COHERE API KEY NOT SET! Please set COHERE_API_KEY environment variable');
       logger.warn('Instructions:');
       logger.warn('1. Get API key from: https://dashboard.cohere.ai/');
-      logger.warn('2. Create .env.local file with: COHERE_API_KEY=your-key');
+      logger.warn('2. Create .env.local file with: EXPO_PUBLIC_COHERE_API_KEY=your-key');
       logger.warn('3. Restart the development server');
       logger.warn('AI insights will use mock data until API key is configured');
     } else {
