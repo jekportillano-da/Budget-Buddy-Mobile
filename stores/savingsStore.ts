@@ -90,7 +90,6 @@ export const useSavingsStore = create<SavingsState>((set, get) => ({
 
       set({ isLoading: false });
       
-      console.log('✅ Savings entry added successfully:', result);
       return { success: true, newAchievements: result.newAchievements };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to add savings entry';
@@ -117,7 +116,6 @@ export const useSavingsStore = create<SavingsState>((set, get) => ({
       const activeTheme = await savingsService.getActiveTheme();
       set({ activeTheme, isLoading: false });
       
-      console.log('✅ Savings data loaded successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load savings data';
       set({ error: errorMessage, isLoading: false });
@@ -192,7 +190,6 @@ export const useSavingsStore = create<SavingsState>((set, get) => ({
       await savingsService.activateTheme(themeKey);
       set({ activeTheme: themeKey });
       
-      console.log('✅ Theme activated successfully:', themeKey);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to activate theme';

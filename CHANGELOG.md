@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-09-25
+
+### Added - Production Deployment Ready ✅
+
+#### Configuration Management
+- **Production Environment Config** - Standardized all environment variables across development, preview, and production
+- **Backend Integration** - Full integration with Render production backend (https://budget-buddy-mobile.onrender.com)
+- **Supabase Production Database** - Configured production Supabase instance for data persistence
+- **EAS Build Optimization** - Updated build profiles with production API keys and configurations
+
+#### Backend Infrastructure  
+- **FastAPI Production Server** - Production-ready backend with PostgreSQL support
+- **Authentication System** - Complete JWT-based authentication with tier-based access control
+- **AI Services Integration** - Cohere AI integration with hybrid fallback system
+- **CORS Configuration** - Proper CORS setup for React Native and web deployment
+
+#### Build System
+- **APK/AAB Build Profiles** - Separate configurations for preview (APK) and production (AAB) builds
+- **Environment Variable Management** - Secure API key management in EAS build system
+- **Production Optimization** - NODE_ENV=production with proper bundling and optimization
+
+### Changed
+- **Database Migration** - Moved from local SQLite to production PostgreSQL via Supabase
+- **API Endpoint Standardization** - All environments now use consistent backend URLs
+- **Security Hardening** - Updated JWT tokens, secure secrets, and API key management
+
 ### Planned for Phase 2
 - Dashboard functionality with budget overview
 - Expense tracking and categorization

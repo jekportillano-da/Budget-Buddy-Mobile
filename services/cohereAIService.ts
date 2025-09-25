@@ -25,15 +25,6 @@ class CohereAIService {
       process.env.EXPO_PUBLIC_COHERE_API_KEY ||
       'PLEASE_SET_YOUR_COHERE_API_KEY';
     
-    // Debug logging to verify API key loading (hide in production)
-    if (__DEV__) {
-      logger.debug('Environment variables check', {
-        hasCohereApiKey: !!(process.env.COHERE_API_KEY || process.env.EXPO_PUBLIC_COHERE_API_KEY),
-        apiKeyLength: this.apiKey.length,
-        isConfigured: this.isConfigured()
-      });
-    }
-    
     if (this.apiKey === 'PLEASE_SET_YOUR_COHERE_API_KEY') {
       logger.warn('🚨 COHERE API KEY NOT SET! Please set COHERE_API_KEY environment variable');
       logger.warn('Instructions:');
@@ -41,8 +32,6 @@ class CohereAIService {
       logger.warn('2. Create .env.local file with: EXPO_PUBLIC_COHERE_API_KEY=your-key');
       logger.warn('3. Restart the development server');
       logger.warn('AI insights will use mock data until API key is configured');
-    } else {
-      logger.debug('Cohere AI service initialized with API key');
     }
   }
 
@@ -200,19 +189,7 @@ CRITICAL: Each insight must be UNIQUE to this specific budget amount, family sit
       const userData = this.getCurrentUserData();
       const philippinesContext = this.getPhilippinesContext();
       
-      // DEBUG: Log the exact data being sent to AI
-      logger.debug('🔍 AI Input Data Check', {
-        budget: userData.budget,
-        billsTotal: userData.monthlyBillsTotal,
-        billsCount: userData.bills?.length || 0,
-        income: userData.totalIncome,
-        location: userData.location,
-        timestamp: new Date().toISOString()
-      });
-      
       const prompt = this.createAnalysisPrompt(userData, philippinesContext);
-
-      logger.debug('🚀 Making REAL AI request to Cohere for insights generation');
 
       const response = await fetch(`${this.baseUrl}/chat`, {
         method: 'POST',
@@ -246,15 +223,12 @@ CRITICAL: Each insight must be UNIQUE to this specific budget amount, family sit
       const data = await response.json();
       const aiResponse = data?.message?.content?.[0]?.text || '';
       
-      logger.debug('✅ Successfully received REAL AI insights response', { responseLength: aiResponse.length });
-      
       try {
         // Try to extract JSON from the response
         const jsonMatch = aiResponse.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
         if (jsonMatch) {
           const insights = JSON.parse(jsonMatch[0]);
           const finalInsights = Array.isArray(insights) ? insights : [insights];
-          logger.debug('🎯 Successfully parsed REAL AI insights', { insightsCount: finalInsights.length });
           return finalInsights;
         } else {
           throw new Error('No valid JSON found in response');
@@ -1043,12 +1017,20 @@ Format as JSON with specific metrics, reasoning, and quantified recommendations.
   // Chat method for AI Chatbot integration
   async chatWithAI(userMessage: string): Promise<string> {
     try {
+      // DEBUG: Add temporary debug logging
+      console.log('🔍 DEBUG chatWithAI called with:', userMessage);
+      console.log('🔍 DEBUG API key configured:', this.isConfigured());
+      console.log('🔍 DEBUG API key length:', this.apiKey.length);
+      console.log('🔍 DEBUG API key starts with:', this.apiKey.substring(0, 10));
+      
       // Validate input message
       if (!userMessage || userMessage.trim().length === 0) {
+        console.log('🔍 DEBUG: Empty message, returning fallback');
         return this.getFallbackChatResponse("general help");
       }
 
       if (!this.isConfigured()) {
+        console.log('🔍 DEBUG: API not configured, returning fallback');
         // Return helpful fallback response when API key is not configured
         return this.getFallbackChatResponse(userMessage);
       }
@@ -1111,24 +1093,27 @@ Keep responses conversational, under 200 words, and include actionable Filipino 
         body: JSON.stringify(requestBody),
       });
 
+      console.log('🔍 DEBUG: API response status:', response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.log('🔍 DEBUG: API error:', errorText);
         logger.error('Cohere AI chat error', { status: response.status, error: errorText });
         throw new Error(`Cohere API error: ${response.status}`);
       }
 
       const data = await response.json();
-      logger.debug('Cohere API raw response', { data });
+      console.log('🔍 DEBUG: API response keys:', Object.keys(data));
       
       // Cohere v2 Chat API returns the response in data.message.content[0].text field
       const aiResponse = data.message?.content?.[0]?.text || 'Sorry, I could not generate a response.';
       
-      logger.debug('Successfully received Cohere AI chat response', { 
-        responseLength: aiResponse.length 
-      });
+      console.log('🔍 DEBUG: Final AI response length:', aiResponse.length);
+      console.log('🔍 DEBUG: Final AI response:', aiResponse.substring(0, 100) + '...');
       return aiResponse.trim();
       
     } catch (error) {
+      console.log('🔍 DEBUG: chatWithAI error:', error);
       logger.error('Error in chatWithAI', { error });
       return this.getFallbackChatResponse(userMessage);
     }

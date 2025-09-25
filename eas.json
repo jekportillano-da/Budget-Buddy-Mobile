@@ -30,6 +30,7 @@
         "EXPO_PUBLIC_ENABLE_FALLBACK": "true",
         "EXPO_PUBLIC_BACKEND_TIMEOUT": "10000",
         "EXPO_PUBLIC_HEALTH_CHECK_INTERVAL": "30000",
+        "EXPO_PUBLIC_COHERE_API_KEY": "q6PNPoeEUS1QeYFrWgNLUOL40qI13ay7si4fSINS",
         "EXPO_PUBLIC_SUPABASE_URL": "https://rjzcwufjxqbfhxkhpzts.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqemN3dWZqeHFiZmh4a2hwenRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE5OTk5NDAsImV4cCI6MjA0NzU3NTk0MH0.qyuddJxm-eEUzYLpjFJVVfHNhOlHlxzVZFNojYwPlyo"
       }
@@ -46,9 +47,16 @@
       "env": {
         "NODE_ENV": "production",
         "EXPO_NO_CAPABILITY_SYNC": "1",
-        "COHERE_API_KEY": "REPLACE_WITH_YOUR_ACTUAL_COHERE_API_KEY",
-        "EXPO_PUBLIC_SUPABASE_URL": "REPLACE_WITH_YOUR_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "REPLACE_WITH_YOUR_SUPABASE_ANON_KEY"
+        "EXPO_PUBLIC_BACKEND_URL": "https://budget-buddy-mobile.onrender.com",
+        "EXPO_PUBLIC_API_MODE": "backend",
+        "EXPO_PUBLIC_USE_BACKEND_AUTH": "true",
+        "EXPO_PUBLIC_USE_BACKEND_AI": "true",
+        "EXPO_PUBLIC_ENABLE_FALLBACK": "true",
+        "EXPO_PUBLIC_BACKEND_TIMEOUT": "10000",
+        "EXPO_PUBLIC_HEALTH_CHECK_INTERVAL": "30000",
+        "EXPO_PUBLIC_COHERE_API_KEY": "q6PNPoeEUS1QeYFrWgNLUOL40qI13ay7si4fSINS",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rjzcwufjxqbfhxkhpzts.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqemN3dWZqeHFiZmh4a2hwenRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE5OTk5NDAsImV4cCI6MjA0NzU3NTk0MH0.qyuddJxm-eEUzYLpjFJVVfHNhOlHlxzVZFNojYwPlyo"
       }
     },
     "production-apk": {

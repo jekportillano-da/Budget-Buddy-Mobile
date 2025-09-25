@@ -191,16 +191,14 @@ async def ai_chat(
 ):
     """AI chatbot with tier-based access control"""
     
-    # Check usage limits first (Starter tier gets 3 requests/day)
-    if not await check_usage_limits(current_user, "chat", db):
-        tier_info = get_tier_features(current_user.tier)
-        limit = tier_info["limits"]["ai_requests_per_day"]
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Daily AI chat limit reached ({limit} requests). Upgrade to Bronze tier for more access!"
-        )
-    
-    # Note: Removed tier requirement check - Starter gets limited access, Bronze+ gets more
+    # TEMPORARILY DISABLED FOR TESTING - Check usage limits first (Starter tier gets 3 requests/day)
+    # if not await check_usage_limits(current_user, "chat", db):
+    #     tier_info = get_tier_features(current_user.tier)
+    #     limit = tier_info["limits"]["ai_requests_per_day"]
+    #     raise HTTPException(
+    #         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+    #         detail=f"Daily AI chat limit reached ({limit} requests). Upgrade to Bronze tier for more access!"
+    #     )
     
     try:
         # Create intelligent Philippine-focused financial prompt

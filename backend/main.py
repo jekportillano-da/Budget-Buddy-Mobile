@@ -53,6 +53,7 @@ allowed_origins = [
     "http://localhost:3000",
     "http://localhost:8080", 
     "http://localhost:8081",
+    "http://localhost:8082",  # Added for when 8081 is occupied
     "exp://localhost:8080",
     "exp://localhost:8081",
     "https://budgetbuddy.app",

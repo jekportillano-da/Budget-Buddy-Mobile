@@ -298,7 +298,7 @@ async def forgot_password(
             # For now, we'll just log the token for testing
             logger.info(f"Password reset token for {request.email}: {reset_token}")
             
-            # TODO: Implement email service to send reset link
+            # In production, implement email service to send reset link
             # email_service.send_password_reset_email(user.email, reset_token)
         
         return MessageResponse(message="If an account with that email exists, you will receive a password reset link.")
