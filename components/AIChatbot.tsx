@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert 
 import { useSavingsStore } from '../stores/savingsStore';
 import { cohereAIService } from '../services/cohereAIService';
 import { canUseAI, getTierFeatureText, getSavingsNeededForNextTier } from '../shared/entities/tier/tierAccess';
+import { Text as UIText, Button as UIButton, Input as UIInput, Card } from '../shared/ui/components';
 import AnimatedContainer from './AnimatedContainer';
 import AnimatedButtonSimple from './AnimatedButtonSimple';
 import AnimatedLoading from './AnimatedLoading';
@@ -87,28 +88,34 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
   return (
     <AnimatedContainer style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI Financial Assistant</Text>
+        <UIText variant="h3" color="surface" weight="bold">
+          AI Financial Assistant
+        </UIText>
         <Text style={styles.tierBadge}>
           {currentTier.name} • ₱{currentBalance.toLocaleString()}
         </Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>✕</Text>
+          <UIText color="surface" weight="bold" style={{ fontSize: 20 }}>
+            ✕
+          </UIText>
         </TouchableOpacity>
       </View>
 
       {!hasAccess ? (
         <View style={styles.lockedContainer}>
-          <Text style={styles.lockedIcon}>🔒</Text>
-          <Text style={styles.lockedTitle}>AI Chat Locked</Text>
-          <Text style={styles.lockedMessage}>
+          <UIText style={styles.lockedIcon}>🔒</UIText>
+          <UIText variant="h2" color="text" weight="bold" align="center" style={{ marginBottom: 15 }}>
+            AI Chat Locked
+          </UIText>
+          <UIText variant="body" color="textSecondary" align="center" style={{ marginBottom: 20, lineHeight: 24 }}>
             Save ₱100+ to reach Bronze tier and unlock AI financial assistance!
-          </Text>
-          <Text style={styles.currentProgress}>
+          </UIText>
+          <UIText variant="body" color="accent" weight="semibold" style={{ marginBottom: 5 }}>
             Current savings: ₱{currentBalance.toLocaleString()}
-          </Text>
-          <Text style={styles.remainingAmount}>
+          </UIText>
+          <UIText variant="body" color="error" weight="semibold">
             Need: ₱{savingsNeeded.amountNeeded.toLocaleString()} more {savingsNeeded.nextTier ? `to reach ${savingsNeeded.nextTier}` : ''}
-          </Text>
+          </UIText>
         </View>
       ) : (
         <>
@@ -141,27 +148,31 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
           </ScrollView>
 
           <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.textInput}
+            <UIInput
               value={inputText}
               onChangeText={setInputText}
               placeholder="Ask me about your finances..."
               multiline
               maxLength={500}
-              editable={!isLoading}
+              isDisabled={isLoading}
+              style={styles.textInput}
             />
-            <AnimatedButtonSimple
-              title="Send"
+            <UIButton
+              variant="primary"
+              size="md"
               onPress={sendMessage}
-              disabled={!inputText.trim() || isLoading}
+              isDisabled={!inputText.trim() || isLoading}
+              isLoading={isLoading}
               style={styles.sendButton}
-            />
+            >
+              Send
+            </UIButton>
           </View>
 
           <View style={styles.tierInfo}>
-            <Text style={styles.tierInfoText}>
+            <UIText variant="caption" color="textSecondary" align="center">
               {getTierFeatureText(currentTier.name)}
-            </Text>
+            </UIText>
           </View>
         </>
       )}
