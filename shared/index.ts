@@ -11,3 +11,6 @@ export * from './entities/tier/tierAccess';
 
 // Hooks
 export * from './hooks/useHealthQuery';
+
+// Re-export auth feature for convenience
+export * from '../features/auth';

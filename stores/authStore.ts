@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 import { supabase } from '../services/supabaseService';
 import BackendAuthService from '../services/backendAuthService';
+import { loginUseCase, registerUseCase } from '../features/auth';
 
 // Configuration
 const AUTH_CONFIG = {
@@ -323,47 +324,75 @@ class BackendAuthServiceAdapter {
   private backendService = new BackendAuthService();
 
   async login(email: string, password: string): Promise<{ user: User; tokens: AuthTokens }> {
-    const result = await this.backendService.login(email, password);
-    
-    // Convert backend response to auth store format
-    const user: User = {
-      id: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      tier: result.user.tier,
-      createdAt: result.user.createdAt,
-      emailVerified: result.user.emailVerified,
-    };
+    // Use typed use case for enhanced validation and error handling
+    try {
+      const result = await loginUseCase.execute(email, password, {
+        onProgress: (step) => logger.debug('Login progress', { step }),
+        timeout: 30000,
+      });
 
-    const tokens: AuthTokens = {
-      accessToken: result.tokens.accessToken,
-      refreshToken: result.tokens.refreshToken,
-      expiresAt: result.tokens.expiresAt,
-    };
+      // Result is already in the correct format from use case
+      return result;
+    } catch (error) {
+      // Fallback to original backend service if use case fails
+      logger.warn('Use case failed, falling back to original backend service', { error });
+      
+      const result = await this.backendService.login(email, password);
+      
+      // Convert backend response to auth store format
+      const user: User = {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        tier: result.user.tier,
+        createdAt: result.user.createdAt,
+        emailVerified: result.user.emailVerified,
+      };
 
-    return { user, tokens };
+      const tokens: AuthTokens = {
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+        expiresAt: result.tokens.expiresAt,
+      };
+
+      return { user, tokens };
+    }
   }
 
   async register(email: string, password: string, fullName: string): Promise<{ user: User; tokens: AuthTokens }> {
-    const result = await this.backendService.register(email, password, fullName);
-    
-    // Convert backend response to auth store format
-    const user: User = {
-      id: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      tier: result.user.tier,
-      createdAt: result.user.createdAt,
-      emailVerified: result.user.emailVerified,
-    };
+    // Use typed use case for enhanced validation and error handling
+    try {
+      const result = await registerUseCase.execute(email, password, fullName, {
+        onProgress: (step) => logger.debug('Registration progress', { step }),
+        timeout: 30000,
+      });
 
-    const tokens: AuthTokens = {
-      accessToken: result.tokens.accessToken,
-      refreshToken: result.tokens.refreshToken,
-      expiresAt: result.tokens.expiresAt,
-    };
+      // Result is already in the correct format from use case
+      return result;
+    } catch (error) {
+      // Fallback to original backend service if use case fails
+      logger.warn('Use case failed, falling back to original backend service', { error });
+      
+      const result = await this.backendService.register(email, password, fullName);
+      
+      // Convert backend response to auth store format
+      const user: User = {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        tier: result.user.tier,
+        createdAt: result.user.createdAt,
+        emailVerified: result.user.emailVerified,
+      };
 
-    return { user, tokens };
+      const tokens: AuthTokens = {
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+        expiresAt: result.tokens.expiresAt,
+      };
+
+      return { user, tokens };
+    }
   }
 
   async logout(): Promise<void> {
