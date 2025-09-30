@@ -11,3 +11,6 @@ export * from './schemas/auth';
 
 // Auth client
 export { authClient, AuthClient } from './clients/authClient';
+
+// Re-export hooks for convenience
+export { useHealthQuery, useHealthStatus } from '../hooks/useHealthQuery';

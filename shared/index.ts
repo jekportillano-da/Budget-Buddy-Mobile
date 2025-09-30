@@ -8,3 +8,6 @@ export * from './api';
 
 // Entities
 export * from './entities/tier/tierAccess';
+
+// Hooks
+export * from './hooks/useHealthQuery';
