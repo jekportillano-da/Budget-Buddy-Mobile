@@ -5,3 +5,6 @@
 
 // API infrastructure
 export * from './api';
+
+// Entities
+export * from './entities/tier/tierAccess';

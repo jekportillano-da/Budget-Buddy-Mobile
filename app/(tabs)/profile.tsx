@@ -13,6 +13,7 @@ import { useUserStore } from '../../stores/userStore';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { useBillsStore } from '../../stores/billsStore';
 import { useSavingsStore } from '../../stores/savingsStore';
+import { getTierEmoji } from '../../shared/entities/tier/tierAccess';
 
 export default function Profile() {
   const router = useRouter();
@@ -176,18 +177,7 @@ export default function Profile() {
     </View>
   );
 
-  const getTierEmoji = (tierName: string) => {
-    const tierEmojis: { [key: string]: string } = {
-      'Starter': '🥉',
-      'Bronze Saver': '🥉',
-      'Silver Saver': '🥈', 
-      'Gold Saver': '🥇',
-      'Platinum Saver': '💎',
-      'Diamond Saver': '💎',
-      'Elite Saver': '👑'
-    };
-    return tierEmojis[tierName] || '🏆';
-  };
+  // getTierEmoji function moved to centralized tier access logic
 
   const renderAchievementsModal = () => (
     <Modal

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useSavingsStore } from '../stores/savingsStore';
 import { cohereAIService } from '../services/cohereAIService';
+import { canUseAI, getTierFeatureText, getSavingsNeededForNextTier } from '../shared/entities/tier/tierAccess';
 import AnimatedContainer from './AnimatedContainer';
 import AnimatedButtonSimple from './AnimatedButtonSimple';
 import AnimatedLoading from './AnimatedLoading';
@@ -33,9 +34,9 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
   // Get user's current tier from savings store
   const { currentTier, currentBalance } = useSavingsStore();
 
-  // Check if user has access to AI chatbot (Bronze tier or higher)
-  const hasAccess = currentTier.name !== 'Starter';
-  const tierLevel = getTierLevel(currentTier.name);
+  // Check if user has access to AI chatbot using centralized tier logic
+  const hasAccess = canUseAI(currentTier.name);
+  const savingsNeeded = getSavingsNeededForNextTier(currentBalance, currentTier.name);
 
   const sendMessage = async () => {
     if (!inputText.trim()) return;
@@ -106,7 +107,7 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
             Current savings: ₱{currentBalance.toLocaleString()}
           </Text>
           <Text style={styles.remainingAmount}>
-            Need: ₱{Math.max(0, 100 - currentBalance).toLocaleString()} more
+            Need: ₱{savingsNeeded.amountNeeded.toLocaleString()} more {savingsNeeded.nextTier ? `to reach ${savingsNeeded.nextTier}` : ''}
           </Text>
         </View>
       ) : (
@@ -159,7 +160,7 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
 
           <View style={styles.tierInfo}>
             <Text style={styles.tierInfoText}>
-              {getTierFeatureText(tierLevel)}
+              {getTierFeatureText(currentTier.name)}
             </Text>
           </View>
         </>
@@ -168,27 +169,7 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
   );
 }
 
-// Helper functions
-function getTierLevel(tierName: string): number {
-  const tiers = {
-    'Starter': 0,
-    'Bronze Saver': 1,
-    'Silver Saver': 2,
-    'Gold Saver': 3,
-    'Platinum Saver': 4,
-    'Diamond Saver': 5,
-    'Elite Saver': 6,
-  };
-  return tiers[tierName as keyof typeof tiers] || 0;
-}
-
-function getTierFeatureText(tierLevel: number): string {
-  if (tierLevel >= 4) return '🌟 Unlimited AI features available!';
-  if (tierLevel >= 3) return '⭐ Advanced insights unlocked! Upgrade to Platinum for unlimited access.';
-  if (tierLevel >= 2) return '✨ Premium features available! Upgrade to Gold for advanced insights.';
-  if (tierLevel >= 1) return '💫 Basic AI chat unlocked! Upgrade to Silver for more features.';
-  return '🔒 Save more to unlock advanced AI features!';
-}
+// Helper functions removed - now using centralized tier access logic
 
 const styles = StyleSheet.create({
   container: {
