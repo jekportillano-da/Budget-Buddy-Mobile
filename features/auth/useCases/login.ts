@@ -4,7 +4,8 @@
  */
 
 import { authClient } from '../../../shared/api/clients/authClient';
-import { logger } from '../../../utils/logger';
+import { logger as utilLogger } from '../../../utils/logger';
+import { logger, TelemetryPatterns, ErrorMappers, ValidationError, AppError } from '../../../shared/lib';
 import type { LoginRequest, TokenResponse } from '../../../shared/api/schemas/auth';
 
 export interface LoginResult {
@@ -48,10 +49,16 @@ export class LoginUseCase {
         password,
       };
 
-      logger.info('Login attempt started', { 
+      // Use both old and new logging for compatibility
+      utilLogger.info('Login attempt started', { 
         email: loginRequest.email,
         hasPassword: !!password,
         timestamp: new Date().toISOString(),
+      });
+
+      // New telemetry patterns
+      TelemetryPatterns.userAction('login_attempt', undefined, {
+        email: loginRequest.email,
       });
 
       onProgress?.('Authenticating with server...');
@@ -67,10 +74,15 @@ export class LoginUseCase {
       // Transform response to match existing auth store format
       const result = authClient.transformToCurrentFormat(tokenResponse);
 
-      logger.info('Login successful', { 
+      // Success logging with both systems
+      utilLogger.info('Login successful', { 
         userId: result.user.id,
         userTier: result.user.tier,
         tokenExpiry: new Date(result.tokens.expiresAt).toISOString(),
+      });
+
+      TelemetryPatterns.userAction('login_success', result.user.id, {
+        userTier: result.user.tier,
       });
 
       onProgress?.('Login complete');
@@ -86,23 +98,39 @@ export class LoginUseCase {
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
       };
 
-      logger.error('Login failed', errorContext);
+      // Use legacy logger for compatibility
+      utilLogger.error('Login failed', errorContext);
 
-      // Re-throw with additional context but preserve original error
-      if (error instanceof Error) {
-        // Add more context to common errors
-        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-          throw new Error('Invalid email or password. Please check your credentials and try again.');
-        }
-        if (error.message.includes('timeout') || error.message.includes('408')) {
-          throw new Error('Login request timed out. Please check your internet connection and try again.');
-        }
-        if (error.message.includes('Network') || error.message.includes('fetch')) {
-          throw new Error('Unable to connect to server. Please check your internet connection.');
-        }
+      // Map error using our new error system
+      let mappedError: AppError;
+      
+      if (error instanceof AppError) {
+        mappedError = error;
+      } else if (error instanceof Error) {
+        mappedError = ErrorMappers.fromJavaScriptError(error);
+      } else {
+        mappedError = new AppError(
+          'Unknown login error',
+          'LOGIN_UNKNOWN_ERROR',
+          'medium',
+          { originalError: error }
+        );
       }
 
-      throw error;
+      // Log error with new telemetry system
+      TelemetryPatterns.errorOccurred(mappedError, undefined, {
+        feature: 'auth',
+        action: 'login',
+        email: email.trim().toLowerCase(),
+      });
+
+      // Track failed login attempt
+      TelemetryPatterns.userAction('login_failure', undefined, {
+        errorCode: mappedError.code,
+        errorMessage: mappedError.message,
+      });
+
+      throw mappedError;
     }
   }
 
@@ -132,11 +160,9 @@ export class LoginUseCase {
 
   /**
    * Validate login credentials before making request
+   * Throws ValidationError for invalid inputs
    */
-  static validateCredentials(email: string, password: string): {
-    isValid: boolean;
-    errors: string[];
-  } {
+  static validateCredentials(email: string, password: string): void {
     const errors: string[] = [];
 
     if (!email?.trim()) {
@@ -151,10 +177,34 @@ export class LoginUseCase {
       errors.push('Password must be at least 6 characters long');
     }
 
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    if (errors.length > 0) {
+      throw new ValidationError(
+        `Invalid login credentials: ${errors.join(', ')}`,
+        'credentials',
+        { validationErrors: errors }
+      );
+    }
+  }
+
+  /**
+   * Legacy validation method for backwards compatibility
+   */
+  static validateCredentialsLegacy(email: string, password: string): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    try {
+      this.validateCredentials(email, password);
+      return { isValid: true, errors: [] };
+    } catch (error) {
+      if (error instanceof ValidationError && error.context?.validationErrors) {
+        return { 
+          isValid: false, 
+          errors: error.context.validationErrors as string[] 
+        };
+      }
+      return { isValid: false, errors: ['Validation failed'] };
+    }
   }
 }
 

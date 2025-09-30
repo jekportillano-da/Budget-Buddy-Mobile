@@ -1,8 +1,12 @@
 /**
  * Shared HTTP Client
- * Provides typed fetch wrapper with timeout, JSON parsing, and error normalization
+ * Provides typed fetch wrapper with timeout, JSON parsing, error normalization,
+ * and integrated telemetry/error handling
  */
 
+import { ErrorMappers, TelemetryPatterns } from '../lib';
+
+// Keep legacy AppHttpError for backwards compatibility
 export class AppHttpError extends Error {
   constructor(
     message: string,
@@ -41,6 +45,7 @@ class HttpClient {
 
   private async fetchWithTimeout(url: string, options: RequestOptions = {}): Promise<Response> {
     const { timeout = this.timeout, ...fetchOptions } = options;
+    const startTime = Date.now();
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -56,13 +61,37 @@ class HttpClient {
       });
 
       clearTimeout(timeoutId);
+      
+      // Log API call telemetry
+      const duration = Date.now() - startTime;
+      TelemetryPatterns.apiCall(
+        url,
+        fetchOptions.method || 'GET',
+        duration,
+        response.status,
+        { timeout }
+      );
+
       return response;
     } catch (error) {
       clearTimeout(timeoutId);
+      const duration = Date.now() - startTime;
+      
       if ((error as Error).name === 'AbortError') {
-        throw new AppHttpError(`Request timeout after ${timeout}ms`, 408);
+        const timeoutError = ErrorMappers.fromHttpResponse({ status: 408, statusText: 'Request Timeout' });
+        TelemetryPatterns.apiCall(url, fetchOptions.method || 'GET', duration, 408, { 
+          timeout, 
+          error: 'timeout' 
+        });
+        throw timeoutError;
       }
-      throw error;
+      
+      // Map other network errors
+      const networkError = ErrorMappers.fromJavaScriptError(error as Error);
+      TelemetryPatterns.apiCall(url, fetchOptions.method || 'GET', duration, undefined, { 
+        error: (error as Error).message 
+      });
+      throw networkError;
     }
   }
 
@@ -74,15 +103,14 @@ class HttpClient {
     try {
       data = isJson ? await response.json() : await response.text();
     } catch (error) {
-      throw new AppHttpError('Failed to parse response', response.status, response);
+      const parseError = ErrorMappers.fromJavaScriptError(error as Error);
+      throw parseError;
     }
 
     if (!response.ok) {
-      const message = typeof data === 'object' && data && 'message' in data 
-        ? String((data as any).message)
-        : `HTTP ${response.status}: ${response.statusText}`;
-      
-      throw new AppHttpError(message, response.status, response, data);
+      // Use our new error mapping system
+      const httpError = ErrorMappers.fromHttpResponse(response, data);
+      throw httpError;
     }
 
     return data as T;
