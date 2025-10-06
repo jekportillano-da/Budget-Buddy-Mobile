@@ -131,8 +131,8 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
     except JWTError:
         return None
 
-def get_user_id_from_token(token: str) -> Optional[int]:
-    """Extract user ID from JWT token"""
+def get_user_id_from_token(token: str) -> Optional[str]:
+    """Extract user ID from JWT token (returns UUID as string)"""
     payload = verify_token(token)
     if payload and payload.get("type") == "access":
         return payload.get("user_id")

@@ -102,8 +102,8 @@ async def register_user(
             hashed_password=hashed_password
         )
         
-        # Create tokens
-        access_token = create_access_token(data={"user_id": user.id, "email": user.email})
+        # Create tokens (convert UUID to string for JWT compatibility)
+        access_token = create_access_token(data={"user_id": str(user.id), "email": user.email})
         refresh_token_str = create_refresh_token()
         
         # Store refresh token
@@ -129,6 +129,13 @@ async def register_user(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+    except TypeError as e:
+        # Handle UUID/JSON serialization errors specifically
+        logger.error(f"Registration failed with serialization error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Response serialization error"
         )
     except Exception as e:
         logger.error(f"Registration failed with unexpected error: {e}")
@@ -164,8 +171,8 @@ async def login_user(
         # Update last login
         user_crud.update_user_login(user.id)
         
-        # Create tokens
-        access_token = create_access_token(data={"user_id": user.id, "email": user.email})
+        # Create tokens (convert UUID to string for JWT compatibility)
+        access_token = create_access_token(data={"user_id": str(user.id), "email": user.email})
         refresh_token_str = create_refresh_token()
         
         # Store refresh token
@@ -217,8 +224,8 @@ async def refresh_access_token(
                 detail="User not found or inactive"
             )
         
-        # Create new tokens
-        new_access_token = create_access_token(data={"user_id": user.id, "email": user.email})
+        # Create new tokens (convert UUID to string for JWT compatibility)
+        new_access_token = create_access_token(data={"user_id": str(user.id), "email": user.email})
         new_refresh_token = create_refresh_token()
         
         # Revoke old refresh token and create new one

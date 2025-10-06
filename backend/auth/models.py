@@ -5,6 +5,7 @@ Pydantic models for authentication requests and responses
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Dict, Any
 from datetime import datetime
+from uuid import UUID
 
 # Request models
 class UserRegisterRequest(BaseModel):
@@ -34,7 +35,7 @@ class ResetPasswordRequest(BaseModel):
 
 # Response models
 class UserResponse(BaseModel):
-    id: int
+    id: UUID
     email: str
     full_name: str
     tier: str
@@ -45,6 +46,10 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        # Configure UUID serialization to string for JSON
+        json_encoders = {
+            UUID: str
+        }
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -61,9 +66,15 @@ class RefreshResponse(BaseModel):
 
 class ValidationResponse(BaseModel):
     valid: bool
-    user_id: Optional[int] = None
+    user_id: Optional[UUID] = None
     tier: Optional[str] = None
     expires_at: Optional[datetime] = None
+
+    class Config:
+        # Configure UUID serialization to string for JSON
+        json_encoders = {
+            UUID: str
+        }
 
 class TierInfoResponse(BaseModel):
     tier: str
