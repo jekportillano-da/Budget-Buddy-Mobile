@@ -34,6 +34,7 @@ from .utils import (
     verify_token,
     get_user_id_from_token,
     get_tier_features,
+    PasswordValidationError,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS
 )
@@ -84,8 +85,17 @@ async def register_user(
                 detail="Email already registered"
             )
         
-        # Hash password and create user
-        hashed_password = hash_password(user_data.password)
+        # Validate and hash password
+        try:
+            hashed_password = hash_password(user_data.password)
+        except PasswordValidationError as e:
+            logger.warning(f"Password validation failed for {user_data.email}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        
+        # Create user
         user = user_crud.create_user(
             email=user_data.email,
             full_name=user_data.full_name,
@@ -111,12 +121,20 @@ async def register_user(
         )
         
     except HTTPException:
+        # Re-raise HTTP exceptions (including password validation errors)
         raise
+    except PasswordValidationError as e:
+        # Handle password validation errors specifically
+        logger.warning(f"Password validation failed during registration: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
-        logger.error(f"Registration failed: {e}")
+        logger.error(f"Registration failed with unexpected error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed"
+            detail="Registration failed due to server error"
         )
 
 @router.post("/login", response_model=TokenResponse)
