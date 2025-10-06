@@ -111,7 +111,12 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check"""
+    """Fast health check for load balancer"""
+    return {"status": "ok"}
+
+@app.get("/health/detailed")
+async def detailed_health_check():
+    """Detailed health check with database connectivity"""
     try:
         # Test database connection
         from sqlalchemy import text

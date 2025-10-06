@@ -44,10 +44,10 @@ def check_environment():
 def setup_database():
     """Initialize database tables"""
     try:
-        logger.info("🗄️ Setting up database...")
-        from database import init_db
-        init_db()
-        logger.info("✅ Database initialized successfully")
+        logger.info("🗄️ Database initialization will be handled by FastAPI lifespan...")
+        # Database initialization is now handled by FastAPI lifespan in main.py
+        # This prevents duplicate initialization and blocking during startup
+        logger.info("✅ Database setup delegated to application startup")
         return True
     except Exception as e:
         logger.error(f"❌ Database setup failed: {e}")
@@ -60,21 +60,23 @@ def start_server():
         logger.info(f"🚀 Starting Budget Buddy Backend on port {port}")
         logger.info("⚙️ Optimized for Render.com free tier")
         
-        # Render.com optimized configuration
+        # Render.com optimized configuration for free tier
         cmd = [
             "gunicorn", 
             "main:app",
             "-w", "1",  # Single worker for free tier
             "-k", "uvicorn.workers.UvicornWorker",
             "--bind", f"0.0.0.0:{port}",
-            "--timeout", "120",  # Longer timeout for slow requests
+            "--timeout", "180",  # Extended timeout for startup/slow operations
+            "--graceful-timeout", "30",  # Allow graceful shutdown
             "--keep-alive", "2",  # Keep connections alive
-            "--max-requests", "1000",  # Restart worker after 1000 requests
-            "--max-requests-jitter", "100",  # Add jitter to restarts
-            "--preload",  # Preload app for faster startup
+            "--max-requests", "500",  # Restart worker more frequently to manage memory
+            "--max-requests-jitter", "50",  # Add jitter to restarts
+            "--worker-tmp-dir", "/dev/shm",  # Use memory for worker temp files (Linux)
             "--access-logfile", "-",  # Log to stdout
             "--error-logfile", "-",   # Log errors to stderr
-            "--log-level", "info"
+            "--log-level", "info",
+            "--worker-class", "uvicorn.workers.UvicornWorker"
         ]
         
         logger.info(f"Running command: {' '.join(cmd)}")

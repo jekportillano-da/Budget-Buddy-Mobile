@@ -1,7 +1,7 @@
-# Production Requirements for Cloud Deployment
-fastapi==0.115.5
-uvicorn[standard]==0.32.1
-sqlalchemy==2.0.36
+# Production Requirements for Cloud Deployment - Updated for Render stability
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+sqlalchemy==2.0.43
 psycopg2-binary==2.9.10
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
@@ -10,11 +10,11 @@ python-dotenv==1.0.1
 python-decouple==3.8
 email-validator==2.2.0
 httpx==0.28.1
-pydantic==2.10.3
+pydantic==2.11.10
 pydantic-settings==2.6.1
 
 # Database
 alembic==1.13.0
 
-# Production server
-gunicorn==21.2.0
+# Production server - Updated for better memory management
+gunicorn==23.0.0

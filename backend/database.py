@@ -17,15 +17,16 @@ if "supabase" in DATABASE_URL:
     # Replace transaction pooler port 6543 with direct connection port 5432
     DATABASE_URL = DATABASE_URL.replace(":6543/", ":5432/")
 
-# Create engine with optimized pooling for Supabase
+# Create engine with optimized pooling for Render free tier
 if "postgresql" in DATABASE_URL:
     engine = create_engine(
         DATABASE_URL,
-        pool_size=5,          # Smaller pool to reduce conflicts
-        max_overflow=10,      # Limited overflow
-        pool_timeout=30,      # Reasonable timeout
-        pool_recycle=3600,    # Recycle connections hourly
-        pool_pre_ping=True    # Verify connections before use
+        pool_size=2,          # Minimal pool for free tier memory limits
+        max_overflow=3,       # Very limited overflow 
+        pool_timeout=20,      # Shorter timeout
+        pool_recycle=1800,    # Recycle connections every 30 min
+        pool_pre_ping=True,   # Verify connections before use
+        pool_reset_on_return='commit'  # Reset connections efficiently
     )
 else:
     # SQLite configuration
@@ -104,21 +105,35 @@ class APIUsage(Base):
 
 # Database initialization
 async def init_db():
-    """Initialize database and create tables"""
+    """Initialize database and create tables asynchronously"""
+    import asyncio
+    import threading
+    
+    def _sync_init_db():
+        """Synchronous database initialization to run in thread"""
+        try:
+            # Test database connection first
+            from sqlalchemy import text
+            test_session = SessionLocal()
+            test_session.execute(text("SELECT 1"))
+            test_session.close()
+            print("✅ Database connection successful")
+            
+            # Create all tables
+            Base.metadata.create_all(bind=engine)
+            print("✅ Database tables created successfully")
+            return True
+        except Exception as e:
+            print(f"❌ Database initialization failed: {e}")
+            print(f"DATABASE_URL: {DATABASE_URL}")
+            raise
+    
     try:
-        # Test database connection first
-        from sqlalchemy import text
-        test_session = SessionLocal()
-        test_session.execute(text("SELECT 1"))
-        test_session.close()
-        print("✅ Database connection successful")
-        
-        # Create all tables
-        Base.metadata.create_all(bind=engine)
-        print("✅ Database tables created successfully")
+        # Run blocking database operations in thread pool to avoid blocking event loop
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _sync_init_db)
     except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
-        print(f"DATABASE_URL: {DATABASE_URL}")
+        print(f"❌ Async database initialization failed: {e}")
         raise
 
 # Dependency to get database session
