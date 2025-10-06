@@ -74,6 +74,11 @@ def start_server():
         logger.info(f"🚀 Starting Budget Buddy Backend on port {port}")
         logger.info("⚙️ Optimized for Render.com free tier")
         
+        # Ensure we're in the correct directory (backend/)
+        backend_dir = Path(__file__).parent.absolute()
+        logger.info(f"📁 Working directory: {backend_dir}")
+        os.chdir(backend_dir)
+        
         # Render.com optimized configuration for free tier (minimal memory)
         cmd = [
             "gunicorn", 
@@ -92,7 +97,8 @@ def start_server():
         ]
         
         logger.info(f"Running command: {' '.join(cmd)}")
-        subprocess.run(cmd, check=True)
+        logger.info(f"Current working directory: {os.getcwd()}")
+        subprocess.run(cmd, check=True, cwd=backend_dir)
         
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Server startup failed: {e}")
