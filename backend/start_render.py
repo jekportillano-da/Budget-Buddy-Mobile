@@ -24,21 +24,35 @@ logger = logging.getLogger(__name__)
 def check_environment():
     """Check required environment variables"""
     required_vars = [
-        'DATABASE_URL',
-        'SECRET_KEY',
-        'COHERE_API_KEY'
+        'DATABASE_URL'
     ]
     
+    # Optional variables (set defaults if missing)
+    optional_vars = {
+        'SECRET_KEY': 'render-temp-secret-key-change-in-production',
+        'JWT_SECRET_KEY': 'render-temp-jwt-secret-change-in-production', 
+        'COHERE_API_KEY': 'optional-cohere-key-for-ai-features'
+    }
+    
+    # Check required vars
     missing_vars = []
     for var in required_vars:
         if not os.getenv(var):
             missing_vars.append(var)
     
     if missing_vars:
-        logger.error(f"❌ Missing environment variables: {', '.join(missing_vars)}")
+        logger.error(f"❌ Missing required environment variables: {', '.join(missing_vars)}")
         return False
     
-    logger.info("✅ All required environment variables found")
+    # Set optional vars with defaults if missing
+    for var, default in optional_vars.items():
+        if not os.getenv(var):
+            os.environ[var] = default
+            logger.info(f"⚠️ Set default for {var}")
+        else:
+            logger.info(f"✅ {var} configured")
+    
+    logger.info("✅ Environment configuration complete")
     return True
 
 def setup_database():
@@ -60,23 +74,21 @@ def start_server():
         logger.info(f"🚀 Starting Budget Buddy Backend on port {port}")
         logger.info("⚙️ Optimized for Render.com free tier")
         
-        # Render.com optimized configuration for free tier
+        # Render.com optimized configuration for free tier (minimal memory)
         cmd = [
             "gunicorn", 
             "main:app",
             "-w", "1",  # Single worker for free tier
             "-k", "uvicorn.workers.UvicornWorker",
             "--bind", f"0.0.0.0:{port}",
-            "--timeout", "180",  # Extended timeout for startup/slow operations
-            "--graceful-timeout", "30",  # Allow graceful shutdown
-            "--keep-alive", "2",  # Keep connections alive
-            "--max-requests", "500",  # Restart worker more frequently to manage memory
-            "--max-requests-jitter", "50",  # Add jitter to restarts
-            "--worker-tmp-dir", "/dev/shm",  # Use memory for worker temp files (Linux)
+            "--timeout", "120",  # Reduced timeout
+            "--graceful-timeout", "20",  # Shorter graceful shutdown
+            "--keep-alive", "2",  # Keep connections alive briefly
+            "--max-requests", "200",  # Restart worker more frequently (lower memory)
+            "--max-requests-jitter", "20",  # Less jitter
             "--access-logfile", "-",  # Log to stdout
             "--error-logfile", "-",   # Log errors to stderr
-            "--log-level", "info",
-            "--worker-class", "uvicorn.workers.UvicornWorker"
+            "--log-level", "info"
         ]
         
         logger.info(f"Running command: {' '.join(cmd)}")
