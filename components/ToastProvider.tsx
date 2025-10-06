@@ -2,7 +2,7 @@
  * Budget Buddy Mobile - Toast Notification System
  * @license MIT
  */
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ToastOptions {
   type: 'success' | 'error' | 'warning' | 'info';
@@ -27,6 +28,7 @@ interface Toast extends ToastOptions {
   id: string;
   visible: boolean;
   animation: Animated.Value;
+  progress: Animated.Value;
 }
 
 interface ToastContextValue {
@@ -48,16 +50,19 @@ const { width } = Dimensions.get('window');
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const { currentTheme, tokens } = useTheme();
 
   const showToast = useCallback((options: ToastOptions) => {
     const id = Date.now().toString();
     const animation = new Animated.Value(0);
+    const progress = new Animated.Value(1);
     
     const newToast: Toast = {
       ...options,
       id,
       visible: true,
       animation,
+      progress,
     };
 
     setToasts(prev => [...prev, newToast]);
@@ -70,11 +75,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       friction: 8,
     }).start();
 
-    // Auto hide after duration
+    // Auto hide after duration and animate progress bar
     const duration = options.duration || (options.type === 'error' ? 5000 : 3000);
-    setTimeout(() => {
-      hideToast(id);
-    }, duration);
+    Animated.timing(progress, {
+      toValue: 0,
+      duration,
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished) hideToast(id);
+    });
   }, []);
 
   const hideToast = useCallback((id: string) => {
@@ -126,17 +135,18 @@ interface ToastItemProps {
 }
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
+  const { currentTheme, tokens } = useTheme();
   const getToastStyle = () => {
     switch (toast.type) {
       case 'success':
-        return { backgroundColor: '#34C759', icon: '✅' };
+        return { backgroundColor: currentTheme.colors.success, icon: '✅' };
       case 'error':
-        return { backgroundColor: '#FF3B30', icon: '❌' };
+        return { backgroundColor: currentTheme.colors.error, icon: '❌' };
       case 'warning':
-        return { backgroundColor: '#FF9500', icon: '⚠️' };
+        return { backgroundColor: currentTheme.colors.warning, icon: '⚠️' };
       case 'info':
       default:
-        return { backgroundColor: '#007AFF', icon: 'ℹ️' };
+        return { backgroundColor: currentTheme.colors.accent, icon: 'ℹ️' };
     }
   };
 
@@ -146,7 +156,14 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
     <Animated.View
       style={[
         styles.toast,
-        { backgroundColor: toastStyle.backgroundColor },
+        {
+          backgroundColor: toastStyle.backgroundColor,
+          borderRadius: tokens.radius.md,
+          shadowColor: tokens.shadow.md.color,
+          shadowOpacity: tokens.shadow.md.opacity,
+          shadowRadius: tokens.shadow.md.radius,
+          shadowOffset: tokens.shadow.md.offset,
+        },
         {
           transform: [
             {
@@ -181,6 +198,22 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
       >
         <Text style={styles.closeText}>×</Text>
       </TouchableOpacity>
+
+      {/* Progress Bar */}
+      <View style={styles.progressTrack}>
+        <Animated.View
+          style={[
+            styles.progressBar,
+            {
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              width: toast.progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%'],
+              }),
+            },
+          ]}
+        />
+      </View>
     </Animated.View>
   );
 };
@@ -202,10 +235,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
     elevation: 8,
   },
   toastContent: {
@@ -243,6 +272,20 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  progressTrack: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 6,
+    height: 3,
+    borderRadius: 2,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.25)'
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 2,
   },
 });
 

@@ -6,13 +6,18 @@ import {
   Easing,
   Dimensions,
   Text,
+  Modal,
+  SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface SavingsCelebrationProps {
   amount: number;
   isVisible: boolean;
   onComplete?: () => void;
+  onClose?: () => void;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -21,6 +26,7 @@ export default function SavingsCelebration({
   amount,
   isVisible,
   onComplete,
+  onClose,
 }: SavingsCelebrationProps) {
   const theme = useTheme();
   const dollarSignAnim = useRef(new Animated.Value(0)).current;
@@ -204,115 +210,146 @@ export default function SavingsCelebration({
     '#45B7D1', // Blue
   ];
 
+  const trophySize = Math.min(width, height) * 0.18;
+
   return (
-    <View style={styles.container} pointerEvents="none">
-      {/* Pulsing background */}
-      <Animated.View
-        style={[
-          styles.background,
-          {
-            backgroundColor: theme.currentTheme.colors.primary,
-            transform: [{ scale: pulseAnim }],
-          },
-        ]}
-      />
+    <Modal visible={isVisible} animationType="fade" transparent statusBarTranslucent>
+      <SafeAreaView style={styles.overlay}>
+        <View style={[styles.card, { backgroundColor: theme.currentTheme.colors.surface, borderRadius: theme.tokens.radius.lg }]}> 
+          {/* Close button */}
+          <TouchableOpacity
+            accessibilityLabel="Close celebration"
+            onPress={onClose || onComplete}
+            style={styles.closeButton}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          >
+            <Ionicons name="close" size={22} color={theme.currentTheme.colors.text} />
+          </TouchableOpacity>
 
-      {/* Main dollar sign */}
-      <Animated.View
-        style={[
-          styles.dollarContainer,
-          {
-            transform: [
-              { scale: scaleAnim },
-              { rotate: rotateInterpolation },
-            ],
-            opacity: opacityAnim,
-          },
-        ]}
-      >
-        <Text style={[styles.dollarSign, { color: theme.currentTheme.colors.surface }]}>
-          💰
-        </Text>
-        <Text style={[styles.amount, { color: theme.currentTheme.colors.surface }]}>
-          +₱{amount.toLocaleString()}
-        </Text>
-      </Animated.View>
+          {/* Animated layer container */}
+          <View style={styles.animatedLayer}>
+            {/* Pulsing background */}
+            <Animated.View
+              style={[
+                styles.background,
+                {
+                  backgroundColor: theme.currentTheme.colors.primary,
+                  transform: [{ scale: pulseAnim }],
+                },
+              ]}
+            />
 
-      {/* Confetti particles */}
-      <View style={styles.confettiContainer}>
-        {confettiAnims.map((confetti, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.confettiPiece,
-              {
-                backgroundColor: confettiColors[index % confettiColors.length],
-                transform: [
-                  { translateX: confetti.translateX },
-                  { translateY: confetti.translateY },
-                  { scale: confetti.scale },
-                  {
-                    rotate: confetti.rotate.interpolate({
-                      inputRange: [0, 360],
-                      outputRange: ['0deg', '360deg'],
-                    }),
-                  },
-                ],
-                opacity: confetti.opacity,
-              },
-            ]}
-          />
-        ))}
-      </View>
+            {/* Main trophy icon */}
+            <Animated.View
+              style={[
+                styles.dollarContainer,
+                {
+                  transform: [
+                    { scale: scaleAnim },
+                    { rotate: rotateInterpolation },
+                  ],
+                  opacity: opacityAnim,
+                },
+              ]}
+            >
+              <Ionicons name="trophy" size={trophySize} color={theme.currentTheme.colors.accent} />
+              <Text style={[styles.amount, { color: theme.currentTheme.colors.text, fontSize: Math.max(20, trophySize * 0.4) * 0.6 }]}>
+                +₱{amount.toLocaleString()}
+              </Text>
+            </Animated.View>
 
-      {/* Achievement text */}
-      <Animated.View
-        style={[
-          styles.achievementContainer,
-          {
-            opacity: opacityAnim,
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        <Text style={[styles.achievementText, { color: theme.currentTheme.colors.surface }]}>
-          🎉 Savings Added! 🎉
-        </Text>
-      </Animated.View>
-    </View>
+            {/* Confetti particles */}
+            <View style={styles.confettiContainer}>
+              {confettiAnims.map((confetti, index) => (
+                <Animated.View
+                  key={index}
+                  style={[
+                    styles.confettiPiece,
+                    {
+                      backgroundColor: confettiColors[index % confettiColors.length],
+                      transform: [
+                        { translateX: confetti.translateX },
+                        { translateY: confetti.translateY },
+                        { scale: confetti.scale },
+                        {
+                          rotate: confetti.rotate.interpolate({
+                            inputRange: [0, 360],
+                            outputRange: ['0deg', '360deg'],
+                          }),
+                        },
+                      ],
+                      opacity: confetti.opacity,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+
+            {/* Achievement text */}
+            <Animated.View
+              style={[
+                styles.achievementContainer,
+                {
+                  opacity: opacityAnim,
+                  transform: [{ scale: scaleAnim }],
+                },
+              ]}
+            >
+              <Text style={[styles.achievementText, { color: theme.currentTheme.colors.text }]}>
+                🎉 Savings Added! 🎉
+              </Text>
+            </Animated.View>
+          </View>
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    padding: 16,
+  },
+  card: {
+    width: '92%',
+    maxWidth: 520,
+    minHeight: 260,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  animatedLayer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   background: {
     position: 'absolute',
-    width: width * 2,
-    height: height * 2,
+    width: width * 1.2,
+    height: width * 1.2,
     borderRadius: width,
-    opacity: 0.3,
+    opacity: 0.18,
   },
   dollarContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dollarSign: {
-    fontSize: 80,
-    marginBottom: 10,
-  },
   amount: {
-    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginTop: 8,
   },
   confettiContainer: {
     position: 'absolute',
@@ -328,12 +365,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   achievementContainer: {
-    position: 'absolute',
-    bottom: height * 0.3,
     alignItems: 'center',
+    marginTop: 16,
   },
   achievementText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
   },

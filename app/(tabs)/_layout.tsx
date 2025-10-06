@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text, Animated, Easing } from 'react-native';
+import { View, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export default function TabLayout() {
@@ -12,19 +13,29 @@ export default function TabLayout() {
         tabBarActiveTintColor: theme.currentTheme.colors.primary,
         tabBarInactiveTintColor: theme.currentTheme.colors.textSecondary,
         headerStyle: {
-          backgroundColor: theme.currentTheme.colors.primary,
-        },
-        headerShadowVisible: false,
-        headerTintColor: theme.currentTheme.colors.surface,
-        tabBarStyle: {
           backgroundColor: theme.currentTheme.colors.surface,
-          borderTopColor: theme.currentTheme.colors.primary,
-          borderTopWidth: 2,
-          elevation: 8,
-          shadowColor: theme.currentTheme.colors.primary,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
+        },
+        headerTitleStyle: { color: theme.currentTheme.colors.text },
+        headerShadowVisible: false,
+        headerTintColor: theme.currentTheme.colors.text,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: { fontSize: theme.tokens.typography.xs },
+        tabBarStyle: {
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 12,
+          height: 64,
+          paddingBottom: 10,
+          paddingTop: 10,
+          backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.9)' : theme.currentTheme.colors.surface,
+          borderRadius: theme.tokens.radius.lg,
+          borderTopWidth: 0,
+          elevation: 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
         },
       }}
     >
@@ -33,7 +44,7 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon name={focused ? 'home' : 'home-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'home' : 'home-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -42,7 +53,7 @@ export default function TabLayout() {
         options={{
           title: 'Bills',
           tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon name={focused ? 'receipt' : 'receipt-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'receipt' : 'receipt-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -51,7 +62,7 @@ export default function TabLayout() {
         options={{
           title: 'Ledger',
           tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon name={focused ? 'wallet' : 'wallet-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'wallet' : 'wallet-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -60,7 +71,7 @@ export default function TabLayout() {
         options={{
           title: 'Insights',
           tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon name={focused ? 'analytics' : 'analytics-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'analytics' : 'analytics-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -69,7 +80,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon name={focused ? 'person' : 'person-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'person' : 'person-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -78,7 +89,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon name={focused ? 'settings' : 'settings-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'settings' : 'settings-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -86,33 +97,19 @@ export default function TabLayout() {
   );
 }
 
-// Animated tab icon component
-function AnimatedTabIcon({ 
-  name, 
-  color, 
-  focused 
-}: { 
-  name: string; 
-  color: string; 
-  focused: boolean;
-}) {
-  const getEmoji = () => {
-    if (name === 'bug' || name === 'bug-outline') return '🐛';
-    if (name === 'home' || name === 'home-outline') return '🏠';
-    if (name === 'receipt' || name === 'receipt-outline') return '🧾';
-    if (name === 'wallet' || name === 'wallet-outline') return '💰';
-    if (name === 'analytics' || name === 'analytics-outline') return '📊';
-    if (name === 'person' || name === 'person-outline') return '👤';
-    return '⚙️';
-  };
-  
+// Vector tab icon with subtle active pill
+function TabIcon({ name, color, focused }: { name: string; color: string; focused: boolean }) {
+  const { tokens, currentTheme } = useTheme();
   return (
-    <Text style={{ 
-      color, 
-      fontSize: focused ? 24 : 20,
-      transform: [{ scale: focused ? 1.1 : 1 }]
-    }}>
-      {getEmoji()}
-    </Text>
+    <View
+      style={{
+        paddingHorizontal: focused ? 12 : 0,
+        paddingVertical: focused ? 6 : 0,
+        backgroundColor: focused ? currentTheme.colors.background : 'transparent',
+        borderRadius: tokens.radius.full,
+      }}
+    >
+      <Ionicons name={name as any} size={focused ? 26 : 22} color={color} />
+    </View>
   );
 }

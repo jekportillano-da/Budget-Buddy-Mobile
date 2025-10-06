@@ -328,7 +328,7 @@ export default function Bills() {
       {/* Bill Actions Modal */}
       <Modal
         visible={actionsModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setActionsModalVisible(false)}
       >
@@ -372,7 +372,7 @@ export default function Bills() {
               style={[styles.actionButton, styles.cancelButton]} 
               onPress={() => setActionsModalVisible(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -381,7 +381,7 @@ export default function Bills() {
       {/* Edit Bill Modal */}
       <Modal
         visible={editModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setEditModalVisible(false)}
       >
@@ -420,7 +420,7 @@ export default function Bills() {
                 style={[styles.actionButton, styles.cancelButton]}
                 onPress={() => setEditModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>Close</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionButton, styles.saveButton]}

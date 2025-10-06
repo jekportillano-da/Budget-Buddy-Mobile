@@ -15,6 +15,41 @@ interface ThemeColors {
   error: string;
 }
 
+// Non-color design tokens to unify styling across the app
+interface ThemeTokens {
+  radius: {
+    xs: number;
+    sm: number;
+    md: number;
+    lg: number;
+    full: number;
+  };
+  spacing: {
+    xs: number;
+    sm: number;
+    md: number;
+    lg: number;
+    xl: number;
+  };
+  typography: {
+    xs: number;
+    sm: number;
+    md: number;
+    lg: number;
+    xl: number;
+  };
+  shadow: {
+    sm: { color: string; opacity: number; radius: number; offset: { width: number; height: number } };
+    md: { color: string; opacity: number; radius: number; offset: { width: number; height: number } };
+    lg: { color: string; opacity: number; radius: number; offset: { width: number; height: number } };
+  };
+  motion: {
+    fast: number; // ms
+    base: number; // ms
+    slow: number; // ms
+  };
+}
+
 interface Theme {
   name: string;
   colors: ThemeColors;
@@ -24,6 +59,7 @@ interface Theme {
 interface ThemeContextType {
   currentTheme: Theme;
   isLoading: boolean;
+  tokens: ThemeTokens;
 }
 
 // Default theme (fallback)
@@ -42,6 +78,19 @@ const defaultTheme: Theme = {
     warning: '#FF9800',
     error: '#f44336',
   },
+};
+
+// Baseline tokens shared across themes
+const defaultTokens: ThemeTokens = {
+  radius: { xs: 4, sm: 8, md: 12, lg: 16, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 },
+  typography: { xs: 12, sm: 14, md: 16, lg: 20, xl: 24 },
+  shadow: {
+    sm: { color: '#000', opacity: 0.08, radius: 6, offset: { width: 0, height: 2 } },
+    md: { color: '#000', opacity: 0.12, radius: 10, offset: { width: 0, height: 4 } },
+    lg: { color: '#000', opacity: 0.16, radius: 20, offset: { width: 0, height: 10 } },
+  },
+  motion: { fast: 150, base: 250, slow: 400 },
 };
 
 // Theme definitions with full color palettes
@@ -148,6 +197,7 @@ const themes: Record<string, Theme> = {
 const ThemeContext = createContext<ThemeContextType>({
   currentTheme: defaultTheme,
   isLoading: true,
+  tokens: defaultTokens,
 });
 
 export const useTheme = () => {
@@ -166,6 +216,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { activeTheme, isLoading: savingsLoading } = useSavingsStore();
   const [currentTheme, setCurrentTheme] = useState<Theme>(defaultTheme);
   const [isLoading, setIsLoading] = useState(true);
+  const [tokens] = useState<ThemeTokens>(defaultTokens);
 
   useEffect(() => {
     const updateTheme = () => {
@@ -196,6 +247,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const value: ThemeContextType = {
     currentTheme,
     isLoading,
+    tokens,
   };
 
   return (
