@@ -6,16 +6,26 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 from decouple import config
 import asyncio
+import uuid
 
-# Database URL - Use direct connection (port 5432) to bypass pooling conflicts
+# Database URL - Support both Supabase and Render PostgreSQL
 DATABASE_URL = config("DATABASE_URL", default="sqlite:///./budget_buddy.db")
 
-# If using Supabase, force direct connection to avoid SASL auth conflicts
+# Database connection optimizations based on provider
 if "supabase" in DATABASE_URL:
     # Replace transaction pooler port 6543 with direct connection port 5432
     DATABASE_URL = DATABASE_URL.replace(":6543/", ":5432/")
+    print("🔗 Detected Supabase PostgreSQL connection")
+elif "render.com" in DATABASE_URL or "postgres.render.com" in DATABASE_URL:
+    print("🔗 Detected Render PostgreSQL connection")
+    print(f"✅ Connected to Render Postgres: {DATABASE_URL.split('@')[0]}@***")
+elif "postgresql" in DATABASE_URL:
+    print("🔗 Detected PostgreSQL connection")
+else:
+    print("🔗 Using SQLite database")
 
 # Create engine with optimized pooling for Render free tier
 if "postgresql" in DATABASE_URL:
@@ -41,11 +51,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base class for models
 Base = declarative_base()
 
-# User model
+# User model - Updated for UUID primary key (Render PostgreSQL compatible)
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
     hashed_password = Column(String(255), nullable=False)
@@ -57,34 +67,34 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True))
 
-# Refresh token model
+# Refresh token model - Updated for UUID foreign key
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
     token = Column(String(255), unique=True, index=True, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_revoked = Column(Boolean, default=False)
 
-# Password reset token model
+# Password reset token model - Updated for UUID foreign key
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
     token = Column(String(255), unique=True, index=True, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_used = Column(Boolean, default=False)
 
-# User preferences model (for tier-based features)
+# User preferences model (for tier-based features) - Updated for UUID foreign key
 class UserPreference(Base):
     __tablename__ = "user_preferences"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
     preference_type = Column(String(50), nullable=False)  # theme, feature, etc.
     preference_key = Column(String(100), nullable=False)
     preference_value = Column(Text)
@@ -92,12 +102,12 @@ class UserPreference(Base):
     unlocked_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-# API usage tracking (for rate limiting premium features)
+# API usage tracking (for rate limiting premium features) - Updated for UUID foreign key
 class APIUsage(Base):
     __tablename__ = "api_usage"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
     endpoint = Column(String(100), nullable=False)
     usage_count = Column(Integer, default=1)
     date = Column(DateTime(timezone=True), server_default=func.now())
@@ -153,7 +163,8 @@ class UserCRUD:
     def get_user_by_email(self, email: str):
         return self.db.query(User).filter(User.email == email).first()
     
-    def get_user_by_id(self, user_id: int):
+    def get_user_by_id(self, user_id: str):
+        """Get user by UUID string"""
         return self.db.query(User).filter(User.id == user_id).first()
     
     def create_user(self, email: str, full_name: str, hashed_password: str):
@@ -167,14 +178,16 @@ class UserCRUD:
         self.db.refresh(user)
         return user
     
-    def update_user_login(self, user_id: int):
+    def update_user_login(self, user_id: str):
+        """Update user login timestamp by UUID string"""
         user = self.get_user_by_id(user_id)
         if user:
             user.last_login = func.now()
             self.db.commit()
         return user
     
-    def update_user_tier(self, user_id: int, tier: str, total_savings: float):
+    def update_user_tier(self, user_id: str, tier: str, total_savings: float):
+        """Update user tier by UUID string"""
         user = self.get_user_by_id(user_id)
         if user:
             user.tier = tier
@@ -182,7 +195,8 @@ class UserCRUD:
             self.db.commit()
         return user
     
-    def update_user_password(self, user_id: int, hashed_password: str):
+    def update_user_password(self, user_id: str, hashed_password: str):
+        """Update user password by UUID string"""
         user = self.get_user_by_id(user_id)
         if user:
             user.hashed_password = hashed_password
@@ -194,7 +208,8 @@ class RefreshTokenCRUD:
     def __init__(self, db: Session):
         self.db = db
     
-    def create_refresh_token(self, user_id: int, token: str, expires_at):
+    def create_refresh_token(self, user_id: str, token: str, expires_at):
+        """Create refresh token for UUID user"""
         refresh_token = RefreshToken(
             user_id=user_id,
             token=token,
@@ -217,7 +232,8 @@ class RefreshTokenCRUD:
             self.db.commit()
         return refresh_token
     
-    def revoke_all_user_tokens(self, user_id: int):
+    def revoke_all_user_tokens(self, user_id: str):
+        """Revoke all tokens for UUID user"""
         self.db.query(RefreshToken).filter(
             RefreshToken.user_id == user_id,
             RefreshToken.is_revoked == False
@@ -229,7 +245,8 @@ class PasswordResetTokenCRUD:
     def __init__(self, db: Session):
         self.db = db
     
-    def create_reset_token(self, user_id: int, token: str, expires_at):
+    def create_reset_token(self, user_id: str, token: str, expires_at):
+        """Create password reset token for UUID user"""
         # Invalidate any existing reset tokens for this user
         self.db.query(PasswordResetToken).filter(
             PasswordResetToken.user_id == user_id,
