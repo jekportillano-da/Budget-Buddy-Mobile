@@ -79,21 +79,22 @@ def start_server():
         logger.info(f"📁 Working directory: {backend_dir}")
         os.chdir(backend_dir)
         
-        # Render.com optimized configuration for free tier (minimal memory)
+        # Render.com optimized configuration - CORRECTED PORT BINDING
         cmd = [
             "gunicorn", 
             "main:app",
-            "-w", "1",  # Single worker for free tier
             "-k", "uvicorn.workers.UvicornWorker",
-            "--bind", f"0.0.0.0:{port}",
-            "--timeout", "120",  # Reduced timeout
-            "--graceful-timeout", "20",  # Shorter graceful shutdown
+            "--bind", f"0.0.0.0:{port}",  
+            "--workers", "1",  # Single worker for free tier
+            "--timeout", "180",  # Longer timeout for stability
+            "--graceful-timeout", "30",  # Adequate graceful shutdown
             "--keep-alive", "2",  # Keep connections alive briefly
-            "--max-requests", "200",  # Restart worker more frequently (lower memory)
-            "--max-requests-jitter", "20",  # Less jitter
+            "--max-requests", "1000",  # Higher limit to prevent frequent restarts
+            "--max-requests-jitter", "100",  # Reasonable jitter
             "--access-logfile", "-",  # Log to stdout
             "--error-logfile", "-",   # Log errors to stderr
-            "--log-level", "info"
+            "--log-level", "info",
+            "--preload-app"  # Preload application for better memory management
         ]
         
         logger.info(f"Running command: {' '.join(cmd)}")

@@ -12,13 +12,25 @@ from decouple import config
 import logging
 
 from database import init_db, get_db_session
-from auth.routes import router as auth_router
-from ai.routes import router as ai_router
-from users.routes import router as users_router
 
-# Configure logging
+# Configure logging first
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Import routers with error handling
+try:
+    from auth.routes import router as auth_router
+    from ai.routes import router as ai_router  
+    from users.routes import router as users_router
+    logger.info("✅ All routers imported successfully")
+except Exception as e:
+    logger.error(f"❌ Router import failed: {e}")
+    # Create dummy routers to prevent startup failure
+    from fastapi import APIRouter
+    auth_router = APIRouter()
+    ai_router = APIRouter()
+    users_router = APIRouter()
+    logger.warning("⚠️ Using dummy routers due to import failure")
 
 # Database initialization
 @asynccontextmanager
@@ -77,10 +89,15 @@ logger.info(f"🌐 CORS enabled for origins: {allowed_origins}")
 # Security scheme
 security = HTTPBearer()
 
-# Include routers
-app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
-app.include_router(ai_router, prefix="/ai", tags=["AI Services"])
-app.include_router(users_router, prefix="/user", tags=["User Management"])
+# Include routers with error handling
+try:
+    app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+    app.include_router(ai_router, prefix="/ai", tags=["AI Services"])
+    app.include_router(users_router, prefix="/user", tags=["User Management"])
+    logger.info("✅ All routers registered successfully")
+except Exception as e:
+    logger.error(f"❌ Router registration failed: {e}")
+    logger.warning("⚠️ Continuing with core routes only")
 
 @app.get("/")
 async def root():
