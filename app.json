@@ -6,7 +6,7 @@
     "version": "1.1.0",
     "sdkVersion": "51.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "auto",
+    "userInterfaceStyle": "automatic",
     "privacy": "public",
     "primaryColor": "#1e40af",
     "owner": "jekportillano",
@@ -59,19 +59,6 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "budget-buddy",
-    "keywords": [
-      "budget",
-      "finance",
-      "money",
-      "savings",
-      "AI",
-      "personal finance",
-      "expense tracker",
-      "budgeting",
-      "financial planning",
-      "Philippines"
-    ],
-    "category": "Finance",
     "updates": {
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
@@ -84,6 +71,9 @@
       "eas": {
         "projectId": "e17260ad-76ff-462e-9ec5-b0bc63c25696"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
