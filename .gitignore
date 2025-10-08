@@ -33,6 +33,10 @@ yarn-error.*
 .env*.local
 .env
 
+# Additional env variants
+.env.*
+.env.render*
+
 # 🔐 Security: Never commit environment files with secrets
 .env.production
 .env.staging
@@ -43,3 +47,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

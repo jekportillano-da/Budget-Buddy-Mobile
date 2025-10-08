@@ -423,7 +423,7 @@ export default function Settings() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
-      <ScrollView style={styles.scrollView}>
+  <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 96 }}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: theme.currentTheme.colors.surface }]}>
           <View style={styles.headerContent}>

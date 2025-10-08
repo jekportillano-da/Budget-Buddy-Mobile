@@ -33,6 +33,18 @@ export default function Bills() {
     setAddModalVisible(true);
   }; 
 
+  const handleArchiveBill = async () => {
+    if (!selectedBill) return;
+    logger.debug('Archive button clicked for bill', { billName: selectedBill.name });
+    try {
+      await updateBill(selectedBill.id, { isArchived: true });
+      setActionsModalVisible(false);
+      setSelectedBill(null);
+    } catch (error) {
+      logger.error('Error archiving bill', { error, billId: selectedBill.id });
+    }
+  };
+
   const handleSaveBill = async () => {
     if (!newBill.name || !newBill.amount || !newBill.dueDay) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -99,39 +111,6 @@ export default function Bills() {
       return;
     }
 
-    const amount = parseFloat(editBill.amount);
-    if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
-      return;
-    }
-
-    const dueDayNumber = parseInt(editBill.dueDay);
-    if (isNaN(dueDayNumber) || dueDayNumber < 1 || dueDayNumber > 31) {
-      Alert.alert('Error', 'Please enter a valid due day (1-31)');
-      return;
-    }
-
-    try {
-      await updateBill(selectedBill.id, {
-        name: editBill.name,
-        amount,
-        dueDay: dueDayNumber,
-        category: editBill.category,
-      });
-
-      setEditModalVisible(false);
-      setSelectedBill(null);
-      Alert.alert('Success', 'Bill updated successfully!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update bill. Please try again.');
-    }
-  };
-
-  const handleArchiveBill = async () => {
-    if (!selectedBill) return;
-
-    logger.debug('Archive button clicked for bill', { billName: selectedBill.name });
-
     // Temporarily skip Alert for web testing
     try {
       logger.debug('Archiving bill', { billId: selectedBill.id });
@@ -181,7 +160,7 @@ export default function Bills() {
   
   return ( 
     <View style={styles.container}> 
-      <ScrollView style={styles.scrollView}> 
+  <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 96 }}> 
         <Text style={styles.title}>Bills Tracker</Text> 
         
         {/* Enhanced Summary Section */}
@@ -340,36 +319,37 @@ export default function Bills() {
             <Text style={styles.billActionSubtitle}>
               {selectedBill && formatCurrency(selectedBill.amount)} • {selectedBill?.category}
             </Text>
-
-            <TouchableOpacity style={styles.actionOptionButton} onPress={handleEditBill}>
-              <Text style={styles.actionOptionText}>✏️ Edit Bill</Text>
-            </TouchableOpacity>
-
-            {!selectedBill?.isArchived ? (
-              <TouchableOpacity style={styles.actionOptionButton} onPress={handleArchiveBill}>
-                <Text style={styles.actionOptionText}>📁 Archive Bill</Text>
+            <ScrollView style={styles.actionOptionsScroll} contentContainerStyle={{ paddingBottom: 8 }}>
+              <TouchableOpacity style={styles.actionOptionButton} onPress={handleEditBill}>
+                <Text style={styles.actionOptionText}>✏️ Edit Bill</Text>
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.actionOptionButton} 
-                onPress={async () => {
-                  if (selectedBill) {
-                    await updateBill(selectedBill.id, { isArchived: false });
-                    setActionsModalVisible(false);
-                    setSelectedBill(null);
-                  }
-                }}
-              >
-                <Text style={styles.actionOptionText}>📤 Unarchive Bill</Text>
-              </TouchableOpacity>
-            )}
 
-            <TouchableOpacity style={[styles.actionOptionButton, styles.deleteOption]} onPress={handleDeleteBill}>
-              <Text style={[styles.actionOptionText, styles.deleteOptionText]}>🗑️ Delete Bill</Text>
-            </TouchableOpacity>
+              {!selectedBill?.isArchived ? (
+                <TouchableOpacity style={styles.actionOptionButton} onPress={handleArchiveBill}>
+                  <Text style={styles.actionOptionText}>📁 Archive Bill</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.actionOptionButton} 
+                  onPress={async () => {
+                    if (selectedBill) {
+                      await updateBill(selectedBill.id, { isArchived: false });
+                      setActionsModalVisible(false);
+                      setSelectedBill(null);
+                    }
+                  }}
+                >
+                  <Text style={styles.actionOptionText}>📤 Unarchive Bill</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={[styles.actionOptionButton, styles.deleteOption]} onPress={handleDeleteBill}>
+                <Text style={[styles.actionOptionText, styles.deleteOptionText]}>🗑️ Delete Bill</Text>
+              </TouchableOpacity>
+            </ScrollView>
 
             <TouchableOpacity 
-              style={[styles.actionButton, styles.cancelButton]} 
+              style={[styles.singleActionButton, styles.cancelButton]} 
               onPress={() => setActionsModalVisible(false)}
             >
               <Text style={styles.cancelButtonText}>Close</Text>
@@ -516,7 +496,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 24,
-    width: '100%',
+    width: '90%',
     maxWidth: 400,
     elevation: 8,
     shadowColor: '#000',
@@ -687,6 +667,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 10,
     maxHeight: '80%',
+    width: '90%',
+    maxWidth: 420,
+  },
+  actionOptionsScroll: {
+    maxHeight: 320,
+    marginBottom: 8,
   },
   billActionSubtitle: {
     fontSize: 14,
@@ -707,6 +693,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
+  },
+  singleActionButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   deleteOption: {
     backgroundColor: '#ffebee',

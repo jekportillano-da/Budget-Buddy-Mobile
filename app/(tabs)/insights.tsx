@@ -15,6 +15,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Linking,
+  Alert,
 } from 'react-native';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { useBillsStore } from '../../stores/billsStore';
@@ -111,7 +112,16 @@ const fetchPhilippineFinancialNews = async () => {
         ...news,
         id: `news-${currentDate.getTime()}-${index}`,
         // Add slight time variation to make it look more realistic
-        date: new Date(currentDate.getTime() - (index + 1) * 24 * 60 * 60 * 1000 - Math.floor(Math.random() * 12) * 60 * 60 * 1000).toISOString().split('T')[0]
+        date: new Date(currentDate.getTime() - (index + 1) * 24 * 60 * 60 * 1000 - Math.floor(Math.random() * 12) * 60 * 60 * 1000).toISOString().split('T')[0],
+        // Provide a safe URL to open: default to a Google News search for the title in PH context
+        url: (() => {
+          try {
+            const query = encodeURIComponent(`${news.title} ${news.category} Philippines`);
+            return `https://news.google.com/search?q=${query}&hl=en-PH&gl=PH&ceid=PH:en`;
+          } catch {
+            return 'https://news.google.com/home?hl=en-PH&gl=PH&ceid=PH:en';
+          }
+        })()
       }));
 
     // Simulate API delay
@@ -142,7 +152,7 @@ export default function Insights() {
   const loadBusinessIntelligence = async () => {
     setIsLoadingInsights(true);
     try {
-      logger.debug('Calling Grok AI service', { billsCount: bills.length, budget: currentBudget });
+      logger.debug('Calling Grok AI service', { billsCount: bills.length,   budget: currentBudget });
       
       // Generate real AI insights and recommendations
       logger.debug('🚀 Triggering AI insights generation from insights screen');
@@ -297,6 +307,36 @@ export default function Insights() {
     setRefreshing(false);
   };
 
+  // Safely open external news links with fallbacks
+  const openNewsLink = async (item: any) => {
+    const url = item?.url;
+    if (!url || typeof url !== 'string') {
+      // Fallback to a generic Google News search by title if available
+      const query = encodeURIComponent(item?.title || 'Philippines finance news');
+      const fallback = `https://news.google.com/search?q=${query}&hl=en-PH&gl=PH&ceid=PH:en`;
+      try {
+        await Linking.openURL(fallback);
+      } catch (e) {
+        logger.warn('Failed to open fallback news link', { error: e });
+        Alert.alert('Link unavailable', 'Sorry, we could not open this news item.');
+      }
+      return;
+    }
+    try {
+      const can = await Linking.canOpenURL(url);
+      if (can) {
+        await Linking.openURL(url);
+      } else {
+        const query = encodeURIComponent(item?.title || 'Philippines finance news');
+        const fallback = `https://news.google.com/search?q=${query}&hl=en-PH&gl=PH&ceid=PH:en`;
+        await Linking.openURL(fallback);
+      }
+    } catch (e) {
+      logger.warn('Failed to open news url', { url, error: e });
+      Alert.alert('Unable to open link', 'Please try again later.');
+    }
+  };
+
   // Helper function to get status colors
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -312,6 +352,7 @@ export default function Insights() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: 96 }}
         refreshControl={
           <RefreshControl refreshing={refreshing || isLoadingInsights} onRefresh={onRefresh} />
         }
@@ -636,7 +677,7 @@ export default function Insights() {
                         <TouchableOpacity
                           key={newsItem.id}
                           style={styles.newsItem}
-                          onPress={() => Linking.openURL(newsItem.url)}
+                          onPress={() => openNewsLink(newsItem)}
                         >
                           <View style={styles.newsHeader}>
                             <Text style={styles.newsIcon}>{newsItem.icon}</Text>

@@ -181,7 +181,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <ScrollView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]}>
+  <ScrollView style={[styles.container, { backgroundColor: theme.currentTheme.colors.background }]} contentContainerStyle={{ paddingBottom: 96 }}>
         {/* User header with logout */}
         {user && (
           <AnimatedContainer delay={0} style={styles.headerContainer}>

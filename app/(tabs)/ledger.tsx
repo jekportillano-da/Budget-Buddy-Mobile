@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   Modal,
   TextInput,
@@ -69,6 +70,7 @@ export default function Ledger() {
   return (
     <ScrollView 
       style={[styles.scrollContainer, { backgroundColor: theme.currentTheme.colors.background }]}
+      contentContainerStyle={{ paddingBottom: 96 }}
       refreshControl={
         <RefreshControl refreshing={isLoading} onRefresh={loadSavingsData} />
       }
@@ -287,20 +289,28 @@ export default function Ledger() {
               Congratulations! You've unlocked {newAchievements.length} new achievement{newAchievements.length > 1 ? 's' : ''}!
             </Text>
             
-            <View style={styles.achievementsList}>
-              {newAchievements.map((achievement, index) => (
-                <View key={achievement.id} style={styles.achievementItem}>
-                  <Text style={styles.achievementEmoji}>
-                    {achievement.achievement_type === 'tier' ? '🏆' : '⭐'}
-                  </Text>
-                  <View style={styles.achievementInfo}>
-                    <Text style={styles.achievementName}>{achievement.achievement_name}</Text>
-                    <Text style={styles.achievementType}>
-                      {achievement.achievement_type === 'tier' ? 'Tier Achievement' : 'Milestone Achievement'}
+            <View style={styles.achievementsGridContainer}>
+              <FlatList
+                data={newAchievements}
+                keyExtractor={(item) => String(item.id)}
+                numColumns={3}
+                contentContainerStyle={styles.achievementsGridContent}
+                columnWrapperStyle={styles.achievementsGridRow}
+                renderItem={({ item }) => (
+                  <View style={styles.achievementGridItem}>
+                    <Text style={styles.achievementGridEmoji}>
+                      {item.achievement_type === 'tier' ? '🏆' : '⭐'}
+                    </Text>
+                    <Text numberOfLines={2} style={styles.achievementGridName}>
+                      {item.achievement_name}
+                    </Text>
+                    <Text style={styles.achievementGridType}>
+                      {item.achievement_type === 'tier' ? 'Tier' : 'Milestone'}
                     </Text>
                   </View>
-                </View>
-              ))}
+                )}
+                showsVerticalScrollIndicator={false}
+              />
             </View>
             
             <TouchableOpacity
@@ -620,6 +630,42 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  achievementsGridContainer: {
+    width: '100%',
+    maxHeight: 320,
+    marginBottom: 20,
+  },
+  achievementsGridContent: {
+    paddingHorizontal: 4,
+  },
+  achievementsGridRow: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  achievementGridItem: {
+    width: '32%',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  achievementGridEmoji: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  achievementGridName: {
+    fontSize: 12,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  achievementGridType: {
+    fontSize: 10,
+    color: '#666',
   },
   achievementsList: {
     width: '100%',

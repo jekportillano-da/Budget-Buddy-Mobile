@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Modal, SafeAreaView } from 'react-native';
 import { useSavingsStore } from '../stores/savingsStore';
 import { cohereAIService } from '../services/cohereAIService';
 import { canUseAI, getTierFeatureText, getSavingsNeededForNextTier } from '../shared/entities/tier/tierAccess';
@@ -86,7 +86,10 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
   if (!visible) return null;
 
   return (
-    <AnimatedContainer style={styles.container}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <SafeAreaView style={styles.safeArea}>
+          <AnimatedContainer style={styles.container}>
       <View style={styles.header}>
         <UIText variant="h3" color="surface" weight="bold">
           AI Financial Assistant
@@ -176,29 +179,43 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
           </View>
         </>
       )}
-    </AnimatedContainer>
+          </AnimatedContainer>
+        </SafeAreaView>
+      </View>
+    </Modal>
   );
 }
 
 // Helper functions removed - now using centralized tier access logic
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  safeArea: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  container: {
+    width: '100%',
+    maxWidth: 560,
+    maxHeight: '90%',
     backgroundColor: '#fff',
-    margin: 10,
-    borderRadius: 15,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
+    overflow: 'hidden',
   },
   header: {
     backgroundColor: '#4A90E2',
     padding: 15,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -262,8 +279,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   messagesContainer: {
-    flex: 1,
+    flexGrow: 1,
     padding: 15,
+    maxHeight: 360,
   },
   messageContainer: {
     marginVertical: 5,
@@ -331,8 +349,8 @@ const styles = StyleSheet.create({
   tierInfo: {
     backgroundColor: '#F8F9FA',
     padding: 10,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   tierInfoText: {
     fontSize: 12,
