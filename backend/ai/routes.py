@@ -26,6 +26,19 @@ from .models import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# Optional security features - can be disabled if needed
+ENABLE_PROMPT_SANITIZATION = config("ENABLE_PROMPT_SANITIZATION", default=True, cast=bool)
+
+try:
+    if ENABLE_PROMPT_SANITIZATION:
+        from security.prompt_sanitizer import PromptSanitizer
+        logger.info("✅ Prompt sanitization enabled")
+    else:
+        logger.info("⚠️ Prompt sanitization disabled")
+except ImportError as e:
+    logger.warning(f"⚠️ Could not import security module: {e}. Disabling prompt sanitization.")
+    ENABLE_PROMPT_SANITIZATION = False
+
 # AI Service Configuration - Philippine Financial Intelligence
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 COHERE_API_URL = config("COHERE_API_URL", default="https://api.cohere.ai/v2")  # Updated to v2 API
@@ -201,8 +214,25 @@ async def ai_chat(
     #     )
     
     try:
-        # Create intelligent Philippine-focused financial prompt
-        context_prompt = f"""
+        # Optional security: Sanitize user input to prevent prompt injection
+        logger.info(f"Processing chat request from user {current_user.id}")
+        
+        if ENABLE_PROMPT_SANITIZATION:
+            # Use secure prompt with sanitization
+            context_data = {
+                'tier': current_user.tier,
+                'monthly_income': 0,  # Don't expose real data in prompts
+                'savings': min(current_user.total_savings, 100000)  # Cap exposed savings
+            }
+            
+            safe_prompt = PromptSanitizer.create_safe_prompt_template(
+                request.message, 
+                context_data
+            )
+            logger.debug("Using sanitized prompt")
+        else:
+            # Fallback to original prompt format (for backward compatibility)
+            safe_prompt = f"""
 You are Budget Buddy AI, a specialized financial intelligence assistant designed for Filipino users.
 
 CONTEXT: Philippine Financial Landscape
@@ -217,13 +247,6 @@ USER PROFILE:
 - Member since: Registration date
 - Geographic context: Philippines
 
-ADVANCED CAPABILITIES:
-- Smart category detection for Filipino expenses
-- Local market price awareness
-- Peso-based budgeting strategies  
-- Philippine investment recommendations
-- Cultural context financial advice
-
 User Question: {request.message}
 
 INSTRUCTIONS:
@@ -233,10 +256,11 @@ INSTRUCTIONS:
 - Suggest actionable, culturally-relevant strategies
 - Leverage your knowledge of Philippine financial products and services
 """
+            logger.debug("Using original prompt format")
         
-        # Call Cohere AI (Primary AI service)
-        ai_response = await call_cohere_api(context_prompt)
-        response_text = ai_response["response"]  # Updated to match new format
+        # Call Cohere AI with the appropriate prompt
+        ai_response = await call_cohere_api(safe_prompt)
+        response_text = ai_response["response"]
         
         # Record usage
         await record_api_usage(current_user, "chat", db)

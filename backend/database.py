@@ -113,6 +113,18 @@ class APIUsage(Base):
     date = Column(DateTime(timezone=True), server_default=func.now())
     tier_at_usage = Column(String(50))
 
+# Security events tracking for prompt injection and other attacks
+class SecurityEvent(Base):
+    __tablename__ = "security_events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    event_type = Column(String(50), nullable=False)  # prompt_injection_attempt, rate_limit_violation, etc.
+    details = Column(Text)  # JSON string with event details
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    severity = Column(String(20), default='medium')  # low, medium, high, critical
+    resolved = Column(Boolean, default=False)
+
 # Database initialization
 async def init_db():
     """Initialize database and create tables asynchronously"""

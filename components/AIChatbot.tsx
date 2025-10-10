@@ -39,6 +39,36 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
   const hasAccess = canUseAI(currentTier.name);
   const savingsNeeded = getSavingsNeededForNextTier(currentBalance, currentTier.name);
 
+  // Optional input validation to prevent prompt injection
+  const ENABLE_CLIENT_VALIDATION = process.env.EXPO_PUBLIC_ENABLE_CLIENT_VALIDATION !== 'false';
+
+  const validateInput = (input: string): { isValid: boolean; error?: string } => {
+    // Always check basic length limits
+    if (input.length > 500) {
+      return { isValid: false, error: 'Message too long. Please keep it under 500 characters.' };
+    }
+
+    // Optional security patterns (can be disabled)
+    if (ENABLE_CLIENT_VALIDATION) {
+      const suspiciousPatterns = [
+        /ignore.*instruction/i,
+        /you are now/i,
+        /act as.*(?!financial advisor)/i,
+        /forget.*above/i,
+        /reveal.*prompt/i,
+        /system.*instruction/i,
+      ];
+
+      for (const pattern of suspiciousPatterns) {
+        if (pattern.test(input)) {
+          return { isValid: false, error: 'Please ask a financial question instead.' };
+        }
+      }
+    }
+
+    return { isValid: true };
+  };
+
   const sendMessage = async () => {
     if (!inputText.trim()) return;
 
@@ -49,6 +79,13 @@ export default function AIChatbot({ visible, onClose }: AIChatbotProps) {
         'AI chat requires Bronze tier or higher. Save ₱100+ to unlock this feature!',
         [{ text: 'OK' }]
       );
+      return;
+    }
+
+    // Validate input for security
+    const validation = validateInput(inputText.trim());
+    if (!validation.isValid) {
+      Alert.alert('Invalid Input', validation.error);
       return;
     }
 
