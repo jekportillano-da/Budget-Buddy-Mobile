@@ -8,8 +8,10 @@ import os
 import sys
 from pathlib import Path
 
-# Add backend directory to Python path
-backend_dir = Path(__file__).parent
+# Add parent and backend directories to Python path
+parent_dir = Path(__file__).parent.parent
+backend_dir = parent_dir / 'backend'
+sys.path.insert(0, str(parent_dir))
 sys.path.insert(0, str(backend_dir))
 
 try:
