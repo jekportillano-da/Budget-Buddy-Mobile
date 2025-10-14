@@ -49,6 +49,7 @@ interface SavingsState {
   refreshStats: () => Promise<void>;
   
   activateTheme: (themeKey: string) => Promise<boolean>;
+  syncTierWithAuth: () => Promise<void>;
   
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -196,6 +197,24 @@ export const useSavingsStore = create<SavingsState>((set, get) => ({
       set({ error: errorMessage });
       console.error('❌ Error activating theme:', error);
       return false;
+    }
+  },
+
+  syncTierWithAuth: async () => {
+    try {
+      // Delay import to avoid circular dependency
+      const authStoreModule = require('./authStore');
+      const authStore = authStoreModule.useAuthStore.getState();
+      
+      if (authStore.isAuthenticated && authStore.tokens) {
+        await authStore.syncTierAfterLogin();
+        console.log('✅ Tier synced with auth store');
+      } else {
+        console.log('⚠️ Cannot sync tier: User not authenticated');
+      }
+    } catch (error) {
+      console.error('❌ Error syncing tier with auth:', error);
+      // Don't throw - this is a background operation
     }
   },
 

@@ -13,6 +13,7 @@ import { logger } from '../utils/logger';
 import { supabase } from '../services/supabaseService';
 import BackendAuthService from '../services/backendAuthService';
 import { loginUseCase, registerUseCase } from '../features/auth';
+import { tierSyncService } from '../services/tierSyncService';
 
 // Configuration
 const AUTH_CONFIG = {
@@ -125,6 +126,7 @@ interface AuthState {
   updateLastActivity: () => void;
   checkTokenExpiry: () => Promise<boolean>;
   loadUserProfileAfterAuth: (userId: string) => Promise<void>;
+  syncTierAfterLogin: () => Promise<void>;
 }
 
 // Mock authentication service for development
@@ -466,6 +468,14 @@ export const useAuthStore = create<AuthState>()(
             // Profile loading failure shouldn't affect login success
             logger.warn('Profile loading failed after login', profileError);
           }
+
+          // Sync tier with backend in background
+          try {
+            await get().syncTierAfterLogin();
+          } catch (tierSyncError) {
+            // Tier sync failure shouldn't affect login success
+            logger.warn('Tier sync failed after login', tierSyncError);
+          }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';
           set({
@@ -715,6 +725,45 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           logger.warn('Failed to load user profile after authentication', error);
           // Don't throw - authentication was successful, profile loading is secondary
+        }
+      },
+
+      syncTierAfterLogin: async () => {
+        try {
+          const state = get();
+          const { user, tokens } = state;
+          
+          if (!user || !tokens) {
+            logger.warn('Cannot sync tier: User or tokens not available');
+            return;
+          }
+
+          // Check if tier sync is needed
+          const shouldSync = await tierSyncService.shouldSyncTier(user.tier || 'Starter');
+          
+          if (shouldSync) {
+            logger.info('🔄 Syncing user tier after login', { currentTier: user.tier });
+            
+            // Sync tier with backend
+            const syncResult = await tierSyncService.syncTierWithBackend(tokens.accessToken);
+            
+            if (syncResult && syncResult.success) {
+              // Update user tier in auth store
+              const updatedUser = { ...user, tier: syncResult.newTier };
+              set({ user: updatedUser });
+              
+              logger.info('✅ Tier sync completed', {
+                oldTier: syncResult.oldTier,
+                newTier: syncResult.newTier,
+                totalSavings: syncResult.totalSavings
+              });
+            }
+          } else {
+            logger.debug('✅ Tier already in sync, no update needed');
+          }
+        } catch (error) {
+          logger.error('❌ Tier sync failed after login', error);
+          // Don't throw - login was successful, tier sync is secondary
         }
       },
     }),

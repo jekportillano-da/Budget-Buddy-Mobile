@@ -34,6 +34,7 @@ export default function Ledger() {
     loadSavingsData,
     refreshBalance,
     clearError,
+    syncTierWithAuth,
   } = useSavingsStore();
 
   // Local component state
@@ -53,7 +54,12 @@ export default function Ledger() {
       try {
         logger.info('Ledger: Initializing savings data...');
         await loadSavingsData();
-        logger.info('Ledger: Data initialization complete');
+        
+        // Sync tier with auth store to ensure consistency
+        logger.info('Ledger: Syncing tier with auth...');
+        await syncTierWithAuth();
+        
+        logger.info('Ledger: Data initialization and tier sync complete');
       } catch (error) {
         logger.error('Ledger: Failed to initialize data', error);
       }
@@ -65,7 +71,7 @@ export default function Ledger() {
     return () => {
       logger.info('Ledger: Component unmounting, cleaning up...');
     };
-  }, [loadSavingsData]);
+  }, [loadSavingsData, syncTierWithAuth]);
 
   return (
     <ScrollView 
